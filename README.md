@@ -5,6 +5,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![GitHub issues](https://img.shields.io/github/issues/PsycoStea/SiYuan-n8n-nodes.svg?style=flat-square)](https://github.com/PsycoStea/SiYuan-n8n-nodes/issues)
 
+![Node example image](siyuan-image.png)
+
 An [n8n](https://n8n.io/) community node package for [SiYuan](https://b3log.org/siyuan/), the privacy-first personal knowledge base. Manage notebooks, documents, blocks, tags, assets, and more — all from your n8n workflows.
 
 **Designed for AI agent workflows.** Includes dedicated AI Tool nodes that n8n AI agents can call directly, plus a polling Trigger node for reactive workflows.
