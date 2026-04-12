@@ -1,153 +1,294 @@
-# ✨ n8n-nodes-siyuan ✨
+# n8n-nodes-siyuan
 
 [![NPM Version](https://img.shields.io/npm/v/n8n-nodes-siyuan.svg?style=flat-square)](https://www.npmjs.com/package/n8n-nodes-siyuan)
 [![NPM Downloads](https://img.shields.io/npm/dt/n8n-nodes-siyuan.svg?style=flat-square)](https://www.npmjs.com/package/n8n-nodes-siyuan)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![GitHub issues](https://img.shields.io/github/issues/PsycoStea/SiYuan-n8n-nodes.svg?style=flat-square)](https://github.com/PsycoStea/SiYuan-n8n-nodes/issues)
 
-This is an [n8n](https://n8n.io/) community node package that empowers you to seamlessly integrate with [SiYuan](https://b3log.org/siyuan/), your personal knowledge management powerhouse, directly within your automation workflows. 🧠
+An [n8n](https://n8n.io/) community node package for [SiYuan](https://b3log.org/siyuan/), the privacy-first personal knowledge base. Manage notebooks, documents, blocks, tags, assets, and more — all from your n8n workflows.
 
-SiYuan is a privacy-first, self-hosted personal knowledge base that supports Markdown, block-based editing, and bidirectional linking. This n8n node package provides a comprehensive set of operations to interact with the SiYuan API.
+**Designed for AI agent workflows.** Includes dedicated AI Tool nodes that n8n AI agents can call directly, plus a polling Trigger node for reactive workflows.
 
 ---
 
 **Navigation**
-* [💾 Installation](#installation)
-* [⚙️ The SiYuan Node](#the-siyuan-node)
-* [🔑 Credentials](#credentials)
-* [🚀 Usage Examples](#usage-examples)
-* [🔗 Compatibility](#compatibility)
-* [📚 Resources](#resources)
-* [📜 Version History](#version-history)
-* [🤝 Contributing](#contributing)
+* [Installation](#installation)
+* [Nodes](#nodes)
+* [Credentials](#credentials)
+* [Operations Reference](#operations-reference)
+* [AI Agent Usage](#ai-agent-usage)
+* [Trigger Node](#trigger-node)
+* [Example Workflows](#example-workflows)
+* [Compatibility](#compatibility)
+* [Troubleshooting](#troubleshooting)
+* [Resources](#resources)
+* [Version History](#version-history)
+* [Contributing](#contributing)
 
 ---
 
 ## Installation
 
-1.  Go to **Settings > Community Nodes** in your n8n instance.
-2.  Select **Install**.
-3.  Enter `n8n-nodes-siyuan` in the search box.
-4.  Click the **Install** button.
+1. Go to **Settings > Community Nodes** in your n8n instance.
+2. Select **Install**.
+3. Enter `n8n-nodes-siyuan` in the search box.
+4. Click the **Install** button.
 
 Alternatively, follow the generic [installation guide](https://docs.n8n.io/integrations/community-nodes/installation/) in the n8n community nodes documentation.
 
-## The SiYuan Node
+> **Note for AI Tool usage:** You may need to set the environment variable `N8N_COMMUNITY_PACKAGES_ALLOW_TOOL_USAGE=true` on your n8n instance to use the AI Tool nodes with n8n's AI Agent.
 
-This package provides a single, comprehensive `SiYuan` node. You can select the desired action using the **Operation** dropdown within the node.
+## Nodes
 
-![SiYuan Node Example](./siyuan-image.png)
+This package provides **7 nodes**:
 
-**Supported Operations:**
-
-*   **Notebook Management:**
-    *   Create Notebook
-    *   Rename Notebook
-    *   Remove Notebook
-    *   List Notebooks
-*   **Document Management:**
-    *   Create Document
-    *   Rename Document
-    *   Remove Document
-    *   Move Document
-    *   Get Document ID by Path
-    *   Get Document Path by ID
-    *   List Documents in Notebook (includes titles)
-    *   Export Document Markdown
-*   **Block Manipulation:**
-    *   Append Block
-    *   Prepend Block
-    *   Insert Block
-    *   Update Block
-    *   Delete Block
-    *   Get Block Kramdown
-    *   Get Child Blocks
-*   **File System (Workspace):**
-    *   List Files in Directory
-*   **Attributes:**
-    *   Set Block Attributes
-    *   Get Block Attributes
-*   **Database & Templating:**
-    *   Execute SQL Query
-    *   Render Sprig Template
-*   **Notifications:**
-    *   Push Message
-    *   Push Error Message
-*   **System:**
-    *   Get Version
+| Node | Type | Purpose |
+|------|------|---------|
+| **SiYuan** | Action | Full-featured node with all 56 operations across 8 resources |
+| **SiYuan Document Tool** | AI Tool | Focused document operations for AI agents |
+| **SiYuan Block Tool** | AI Tool | Focused block operations for AI agents |
+| **SiYuan Search Tool** | AI Tool | Focused search/query operations for AI agents |
+| **SiYuan Notebook Tool** | AI Tool | Focused notebook operations for AI agents |
+| **SiYuan Trigger** | Trigger | Polls for document/block changes to start workflows |
 
 ## Credentials
 
-To interact with your SiYuan instance, you'll need to configure the `SiYuan API` credentials in n8n:
+To connect to your SiYuan instance:
 
-1.  **Prerequisites:**
-    *   Ensure SiYuan is running and accessible from your n8n instance.
-    *   In SiYuan, go to **Settings -> About -> API Token**.
-    *   Enable the API and copy your **API Token**.
-    *   Note down your SiYuan **API Server address** (e.g., `http://127.0.0.1:6806` for a local instance).
-2.  **Setup in n8n:**
-    *   Navigate to the **Credentials** section in your n8n instance.
-    *   Click **Add credential**.
-    *   Search for `SiYuan API` and select it.
-    *   Provide a **Credential Name** (e.g., "My Local SiYuan").
-    *   Enter your SiYuan **API URL** (e.g., `http://127.0.0.1:6806`).
-    *   Paste your SiYuan **API Token**.
-    *   Click **Save**.
+1. **In SiYuan:** Go to **Settings > About > API Token**. Copy the token.
+2. **In n8n:** Go to **Credentials > Add credential > SiYuan API**.
+3. Enter your **API URL** (default: `http://127.0.0.1:6806`).
+4. Paste your **API Token**.
+5. Click **Test** to verify the connection, then **Save**.
 
-## Usage Examples
+All nodes in this package share the same credential.
 
-The SiYuan node is designed for direct interaction with the API via clearly defined parameters for each operation. This makes it highly versatile for various automation tasks.
+## Operations Reference
 
-**Using with AI Agents in n8n:**
+### Notebook (8 operations)
 
-While this node itself doesn't perform AI functions, it can be a powerful downstream component for AI-driven workflows in n8n:
+| Operation | Description |
+|-----------|-------------|
+| Create | Create a new empty notebook |
+| List | List all notebooks with IDs and names |
+| Rename | Change a notebook's name |
+| Remove | Permanently delete a notebook (irreversible) |
+| Open | Open a closed notebook |
+| Close | Close an open notebook |
+| Get Configuration | Retrieve notebook settings |
+| Set Configuration | Update notebook settings |
 
-*   **AI-Generated Content:** Use an LLM node (like OpenAI, Anthropic, or a local model via Ollama) to generate meeting summaries, blog post drafts, or research notes. Then, pass this generated Markdown content to the SiYuan node's "Create Document" or "Append Block" operation to automatically save it into your knowledge base.
-*   **AI-Powered Task Management:** An AI agent could parse incoming emails or messages, extract tasks, and then use the SiYuan node to create new task blocks or documents in a specific project notebook.
-*   **Dynamic Querying:** Use an AI node to formulate SQL queries based on natural language questions about your notes, then pass the SQL to the SiYuan node's "Execute SQL Query" operation to retrieve information.
+### Document (12 operations)
 
-The possibilities are broad when combining n8n's AI capabilities with direct SiYuan integration!
+| Operation | Description |
+|-----------|-------------|
+| Create | Create a document with Markdown content |
+| Rename | Change a document's title |
+| Remove | Permanently delete a document |
+| Move | Move a document to another notebook or parent |
+| Get ID by Path | Find document ID from human-readable path |
+| Get Path by ID | Get human-readable path from document ID |
+| Get Storage Path by ID | Get internal storage path |
+| Get Readable Path from Storage Path | Convert storage path to readable path |
+| List in Notebook | List all documents in a notebook |
+| Export Markdown | Export document as Markdown with path |
+| Get Content | Get full Markdown content (ideal for AI agents) |
+| Get Document Tree | Get hierarchical block structure |
+
+### Block (12 operations)
+
+| Operation | Description |
+|-----------|-------------|
+| Append | Add content to end of a block |
+| Prepend | Add content to beginning of a block |
+| Insert | Insert content before/after a block |
+| Update | Replace block content |
+| Delete | Remove a block |
+| Move | Move a block to a new position |
+| Fold | Collapse a block |
+| Unfold | Expand a block |
+| Get Kramdown | Get raw Kramdown source |
+| Get Content (Markdown) | Get clean Markdown content |
+| Get Child Blocks | List direct children |
+| Transfer References | Transfer references between blocks |
+
+### Attribute (2 operations)
+
+| Operation | Description |
+|-----------|-------------|
+| Get | Retrieve all attributes for a block |
+| Set | Set custom (`custom-*`) or built-in attributes |
+
+### Tag (6 operations)
+
+| Operation | Description |
+|-----------|-------------|
+| Add | Add a tag to a block |
+| Remove | Remove a tag from a block |
+| Get Tags for Block | List all tags on a block |
+| List All | List all unique tags with counts |
+| Rename | Rename a tag across all blocks |
+| Find Blocks by Tag | Find all blocks with a specific tag |
+
+### Search (4 operations)
+
+| Operation | Description |
+|-----------|-------------|
+| Full-Text Search | Search all blocks by keywords |
+| SQL Query | Run custom SQL against the SiYuan database |
+| Search by Attribute | Find blocks by attribute name/value |
+| Get Recent Changes | List recently modified documents |
+
+### Asset (6 operations)
+
+| Operation | Description |
+|-----------|-------------|
+| Upload Asset | Upload a file (image, PDF, etc.) to SiYuan |
+| Get File | Retrieve file content |
+| Put File | Create or overwrite a file |
+| Remove File | Delete a file |
+| Rename File | Rename/move a file |
+| List Files in Directory | List files in a workspace directory |
+
+### System (6 operations)
+
+| Operation | Description |
+|-----------|-------------|
+| Get Version | Get SiYuan version |
+| Get Current Time | Get server time in milliseconds |
+| Push Message | Show a notification in SiYuan |
+| Push Error Message | Show an error notification |
+| Render Sprig Template | Process a Sprig template string |
+| Export Resources | Export files/folders as a zip |
+
+## AI Agent Usage
+
+This package includes 4 AI Tool nodes designed for use with n8n's AI Agent node:
+
+1. **SiYuan Document Tool** — Create, read, list, and manage documents
+2. **SiYuan Block Tool** — Create, read, update, move, and delete blocks
+3. **SiYuan Search Tool** — Full-text search, SQL queries, tag search, attribute search
+4. **SiYuan Notebook Tool** — Create, list, rename, and delete notebooks
+
+### Setup
+
+1. Add an **AI Agent** node to your workflow.
+2. Connect one or more **SiYuan Tool** nodes to the agent's "tools" input.
+3. Configure each tool node with your SiYuan credentials.
+4. The agent will automatically choose which tool to call based on the user's request.
+
+### How Agents Use These Tools
+
+The AI Tool nodes have descriptions optimized for agent comprehension. For example:
+
+- When an agent needs to **store information**, it will use the Document Tool's "create" operation.
+- When an agent needs to **find information**, it will use the Search Tool's "fullText" operation.
+- When an agent needs to **update content**, it will use the Block Tool's "update" operation.
+
+The main SiYuan node also has `usableAsTool: true`, making all 56 operations available to agents as a single comprehensive tool.
+
+## Trigger Node
+
+The **SiYuan Trigger** node starts workflows when content changes in SiYuan.
+
+### Configuration
+
+| Parameter | Description |
+|-----------|-------------|
+| Event | "Document Changed" or "Block Changed" |
+| Notebook ID | (Optional) Only trigger for a specific notebook |
+| Max Results Per Poll | Maximum items per poll (default: 50) |
+
+The trigger uses n8n's native polling mechanism. Set the polling interval in your workflow settings.
+
+### Output
+
+Each trigger event outputs the full block/document data including:
+- `id` — The block or document ID
+- `root_id` — The parent document ID
+- `type` — Block type (`d` for document, `p` for paragraph, etc.)
+- `content` — The text content
+- `updated` — Timestamp of the change
+- `box` — The notebook ID
+
+## Example Workflows
+
+### AI Agent Knowledge Base
+
+```
+Webhook/Chat → AI Agent → SiYuan Search Tool (find info)
+                       → SiYuan Document Tool (create/update docs)
+                       → SiYuan Block Tool (add/modify content)
+```
+
+### Automated Note Creation
+
+```
+Webhook (external data) → Transform → SiYuan (create document)
+                                    → SiYuan (add tags)
+```
+
+### Content Sync
+
+```
+SiYuan Trigger (doc changed) → SiYuan (export markdown) → HTTP Request (sync to external)
+```
+
+### AI Content Organization
+
+```
+Schedule → SiYuan (list docs) → AI Agent (analyze & categorize)
+                               → SiYuan (add tags)
+                               → SiYuan (move docs)
+```
 
 ## Compatibility
 
-*   **Minimum n8n Version:** Recommended `v1.22.0+` (due to stable Node API v1 usage).
-*   **Tested n8n Versions:** Actively tested with n8n `v1.40.0` and newer.
-*   **SiYuan API:** Developed against the SiYuan API as documented [here](https://github.com/siyuan-note/siyuan/blob/master/API.md). Compatibility is expected with recent SiYuan versions that support this API.
+- **Minimum n8n version:** v1.22.0+
+- **Node.js:** v18.10+
+- **SiYuan:** Developed against the [SiYuan API](https://github.com/siyuan-note/siyuan/blob/master/API.md). Compatible with recent SiYuan versions.
+
+## Troubleshooting
+
+### Connection Issues
+
+| Problem | Solution |
+|---------|----------|
+| "Cannot connect to SiYuan" | Ensure SiYuan is running and the API URL is correct |
+| "Authentication failed" | Check your API token in Settings > About > API Token |
+| "Request timed out" | Verify the API URL and that SiYuan is accessible from your n8n instance |
+
+### Common Errors
+
+| Error | Solution |
+|-------|----------|
+| "Block not found" | Verify the block ID exists using Search > SQL Query |
+| "Notebook not found" | Use Notebook > List to find valid notebook IDs |
+| Invalid path errors | Ensure paths start with `/` (e.g., `/My Notes/Topic`) |
+
+### AI Tool Nodes Not Appearing
+
+If the AI Tool nodes don't appear in the agent's tool selection, set the environment variable:
+```
+N8N_COMMUNITY_PACKAGES_ALLOW_TOOL_USAGE=true
+```
 
 ## Resources
 
-*   [n8n Community Nodes Documentation](https://docs.n8n.io/integrations/community-nodes/)
-*   [Official SiYuan API Documentation](https://github.com/siyuan-note/siyuan/blob/master/API.md)
-*   [SiYuan User Guide](https://b3log.org/siyuan/en/guide)
-*   [Project Repository (Issues, Source Code)](https://github.com/PsycoStea/SiYuan-n8n-nodes)
+- [n8n Community Nodes Documentation](https://docs.n8n.io/integrations/community-nodes/)
+- [SiYuan API Documentation](https://github.com/siyuan-note/siyuan/blob/master/API.md)
+- [SiYuan User Guide](https://b3log.org/siyuan/en/guide)
+- [Project Repository](https://github.com/PsycoStea/SiYuan-n8n-nodes)
+- [Report Issues](https://github.com/PsycoStea/SiYuan-n8n-nodes/issues)
 
 ## Version History
 
-*   **`0.4.0`** (2025-05-11)
-    *   Added Notebook Management: Create Notebook, Rename Notebook, Remove Notebook.
-    *   Added Get Child Blocks operation.
-    *   Added Export Document Markdown operation.
-    *   Added List Files in Directory operation.
-*   **`0.3.1`** (2025-05-11)
-    *   Improved clarity of operation and parameter descriptions in the node UI.
-    *   Includes minor lint fixes for descriptions.
-*   **`0.3.0`** (2025-05-10)
-    *   Added "List Documents in Notebook" operation (fetches document titles).
-    *   Added "List Notebooks" operation.
-*   **`0.2.0`** (2025-05-10)
-    *   Major refactor: Consolidated all functionality into a single `SiYuan` node with an operation selector.
-    *   Removed "AI" branding from node name for clarity.
-    *   Updated dependencies and resolved various build/lint issues.
-    *   This version supersedes any previous individual "Tool" nodes.
-*   **`0.1.x`**
-    *   Previous experimental versions with individual tool nodes (now deprecated).
+See [CHANGELOG.md](./CHANGELOG.md) for the full version history.
 
 ## Contributing
 
-Contributions, issues, and feature requests are welcome! Please feel free to check the [issues page](https://github.com/PsycoStea/SiYuan-n8n-nodes/issues).
+Contributions, issues, and feature requests are welcome! Please check the [issues page](https://github.com/PsycoStea/SiYuan-n8n-nodes/issues).
 
 ---
 
 [![Star History Chart](https://api.star-history.com/svg?repos=PsycoStea/SiYuan-n8n-nodes&type=Timeline)](https://www.star-history.com/#PsycoStea/SiYuan-n8n-nodes&Timeline)
-
-<small>This project was vibe coded. This is my first big project ❤️</small>

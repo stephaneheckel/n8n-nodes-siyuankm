@@ -1,0 +1,22 @@
+{
+	"node": "n8n-nodes-base.siYuan",
+	"nodeVersion": "2.0",
+	"codexVersion": "1.0",
+	"categories": ["Productivity", "Data & Storage"],
+	"resources": {
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/PsycoStea/SiYuan-n8n-nodes"
+			}
+		],
+		"credentialDocumentation": [
+			{
+				"url": "https://github.com/siyuan-note/siyuan/blob/master/API.md"
+			}
+		]
+	},
+	"alias": ["siyuan", "knowledge base", "notes", "notebook", "markdown", "blocks", "PKM"],
+	"subcategories": {
+		"Productivity": ["Note Taking", "Knowledge Management"]
+	}
+}

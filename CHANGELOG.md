@@ -1,0 +1,80 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [2.0.0] - 2026-04-10
+
+### Breaking Changes
+- Node version bumped to v2 — the main SiYuan node now uses a **Resource + Operation** pattern instead of a flat operation dropdown.
+- Existing workflows using v0.x will need to update their SiYuan node configuration to select a Resource first, then an Operation.
+- "List Files in Directory" moved from System resource to Asset resource.
+- Removed ExampleNode and HttpBin scaffolding nodes.
+
+### Added
+- **Resource-based architecture** — operations organized under 8 resources: Notebook, Document, Block, Attribute, Tag, Search, Asset, System.
+- **20+ new operations:**
+  - Notebook: Open, Close, Get Configuration, Set Configuration
+  - Document: Get Storage Path, Get Readable Path from Storage Path, Get Content (AI-optimized), Get Document Tree
+  - Block: Move, Fold, Unfold, Transfer References, Get Content as Markdown
+  - Tag (new resource): Add, Remove, Get Tags, List All, Rename, Find Blocks by Tag
+  - Search: Full-Text Search, Search by Attribute, Get Recent Changes
+  - Asset (new resource): Upload Asset, Get File, Put File, Remove File, Rename File
+  - System: Get Current Time, Export Resources
+- **4 AI Tool nodes** for use with n8n AI agents:
+  - SiYuan Document Tool
+  - SiYuan Block Tool
+  - SiYuan Search Tool
+  - SiYuan Notebook Tool
+- **SiYuan Trigger node** — polling-based trigger for document/block changes with notebook filtering.
+- **Credential test** — "Test Connection" button verifies API URL and token on save.
+- **Structured error handling** — errors include operation context and actionable suggestions for both humans and AI agents.
+- **`usableAsTool: true`** on main node for AI agent compatibility.
+- **Input validation utilities** — `validateRequiredString`, `validateSiYuanId`, `validatePath`.
+
+### Changed
+- Complete codebase restructure: split from single 734-line node file into modular resource-based architecture.
+- `SiYuanClient` refactored with full TypeScript typing (no `any` types), JSDoc comments, and 30s request timeout.
+- All block operations default to Markdown with DOM available as an advanced option.
+- Error messages now include remediation suggestions.
+- Updated dependencies: axios 1.15.0, prettier 3.8.2, eslint-plugin-n8n-nodes-base 1.16.6.
+- Added `form-data` dependency for multipart asset uploads.
+- Added `@types/node` for Buffer type support.
+
+### Removed
+- ExampleNode and HttpBin scaffolding from n8n starter template.
+- README_TEMPLATE.md.
+- ExampleCredentialsApi and HttpBinApi credential files.
+
+## [0.4.0] - 2025-05-11
+
+### Added
+- Notebook Management: Create, Rename, Remove Notebook.
+- Get Child Blocks operation.
+- Export Document Markdown operation.
+- List Files in Directory operation.
+
+## [0.3.1] - 2025-05-11
+
+### Changed
+- Improved operation and parameter descriptions.
+- Minor lint fixes.
+
+## [0.3.0] - 2025-05-10
+
+### Added
+- List Documents in Notebook operation (with titles).
+- List Notebooks operation.
+
+## [0.2.0] - 2025-05-10
+
+### Changed
+- Consolidated all functionality into a single SiYuan node with operation selector.
+- Removed "AI" branding from node name.
+- Updated dependencies and resolved build/lint issues.
+
+## [0.1.x]
+
+- Initial experimental versions with individual tool nodes (deprecated).

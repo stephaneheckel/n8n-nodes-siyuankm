@@ -1,20 +1,19 @@
-import {
-	ICredentialType,
-	INodeProperties,
-} from 'n8n-workflow';
+import type { ICredentialTestRequest, ICredentialType, INodeProperties } from 'n8n-workflow';
 
 export class SiYuanApi implements ICredentialType {
 	name = 'siYuanApi';
 	displayName = 'SiYuan API';
-	// Define the properties required for this credential. User inputs values
-	// for these properties when adding the credential in n8n.
+	documentationUrl = 'https://github.com/siyuan-note/siyuan/blob/master/API.md';
+
 	properties: INodeProperties[] = [
 		{
 			displayName: 'SiYuan API URL',
 			name: 'apiUrl',
 			type: 'string',
 			default: 'http://127.0.0.1:6806',
-			description: 'The URL of your SiYuan API endpoint',
+			placeholder: 'http://127.0.0.1:6806',
+			description:
+				'The base URL of your SiYuan kernel API. Default is http://127.0.0.1:6806 for a local instance.',
 			required: true,
 		},
 		{
@@ -25,15 +24,21 @@ export class SiYuanApi implements ICredentialType {
 				password: true,
 			},
 			default: '',
-			description: 'Your SiYuan API token (found in Settings -> About)',
+			placeholder: 'Enter your SiYuan API token',
+			description: 'Your SiYuan API token. Find it in SiYuan under Settings → About → API Token.',
 			required: true,
 		},
 	];
 
-	// SiYuan uses a simple Token authentication in the header.
-	// The actual authentication logic (adding the header) will be handled
-	// within the API client or node making the request, not via a generic
-	// authenticate property here.
-	// A 'test' method could be added later to verify credentials against
-	// an endpoint like /api/system/version.
+	test: ICredentialTestRequest = {
+		request: {
+			method: 'POST',
+			url: '={{$credentials.apiUrl.replace(/\\/+$/, "")}}/api/notebook/lsNotebooks',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: '=Token {{$credentials.apiToken}}',
+			},
+			body: '{}',
+		},
+	};
 }
