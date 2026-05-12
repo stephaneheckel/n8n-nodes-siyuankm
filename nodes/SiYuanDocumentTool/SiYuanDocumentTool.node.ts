@@ -57,7 +57,7 @@ export class SiYuanDocumentTool implements INodeType {
 					{
 						name: 'Get Document Tree',
 						value: 'getTree',
-						description: 'Get the hierarchical block structure of a document',
+						description: 'Get the tree of child documents (sub-documents) nested under a document',
 						action: 'Get document tree',
 					},
 					{

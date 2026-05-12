@@ -83,6 +83,15 @@ export interface DocumentTreeNode {
 	children: DocumentTreeNode[];
 }
 
+/** A node in a document's sub-document tree (returned by getDocumentTree). */
+export interface SubDocumentNode {
+	id: string;
+	title: string;
+	hPath: string;
+	updated: number;
+	children: SubDocumentNode[];
+}
+
 /** Full-text search result from /api/search/fullTextSearchBlock. */
 export interface FullTextSearchResult {
 	blocks: Array<{

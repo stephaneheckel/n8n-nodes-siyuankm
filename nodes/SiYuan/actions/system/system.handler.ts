@@ -9,10 +9,12 @@ export async function handleSystemOperation(
 ): Promise<unknown> {
 	switch (operation) {
 		case 'getVersion': {
-			return client.getVersion();
+			const version = await client.getVersion();
+			return { version };
 		}
 		case 'getCurrentTime': {
-			return client.getCurrentTime();
+			const servertime = await client.getCurrentTime();
+			return { servertime };
 		}
 		case 'pushMsg': {
 			const message = ctx.getNodeParameter('message', itemIndex) as string;

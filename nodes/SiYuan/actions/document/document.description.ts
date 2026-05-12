@@ -30,7 +30,7 @@ export const documentOperations: INodeProperties = {
 			name: 'Get Document Tree',
 			value: 'getTree',
 			description:
-				'Get the hierarchical block structure of a document, including each block type and content',
+				'Get the tree of child documents (sub-documents) nested under a document',
 			action: 'Get document tree',
 		},
 		{
@@ -198,9 +198,9 @@ export const documentFields: INodeProperties[] = [
 				displayName: 'Max Depth',
 				name: 'maxDepth',
 				type: 'number',
-				default: 10,
+				default: 5,
 				description:
-					'Maximum depth of the block tree to retrieve. Use a lower value for large documents.',
+					'Maximum depth of the sub-document tree to retrieve.',
 			},
 		],
 	},

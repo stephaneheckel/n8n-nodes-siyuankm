@@ -11,7 +11,7 @@ import type {
 	SiYuanChildBlockInfo,
 	ExportedDocMd,
 	BlockOperationResult,
-	DocumentTreeNode,
+	SubDocumentNode,
 	FullTextSearchResult,
 } from './interfaces';
 
@@ -281,39 +281,50 @@ export class SiYuanClient {
 		return exported.content;
 	}
 
-	/** Returns a hierarchical tree of blocks within a document, up to an optional depth limit. */
-	async getDocumentTree(documentId: string, maxDepth: number = 10): Promise<DocumentTreeNode[]> {
-		const buildTree = async (
-			blockId: string,
-			currentDepth: number,
-		): Promise<DocumentTreeNode[]> => {
-			if (currentDepth >= maxDepth) return [];
+	/** Returns a tree of child documents (sub-documents) nested under a document. */
+	async getDocumentTree(documentId: string, maxDepth: number = 5): Promise<SubDocumentNode[]> {
+		const buildDocTree = async (docId: string, depth: number): Promise<SubDocumentNode[]> => {
+			if (depth >= maxDepth) return [];
 
-			const children = await this.getChildBlocks(blockId);
-			const nodes: DocumentTreeNode[] = [];
+			// getPathByID returns e.g. "/data/notebookId/docId.sy"
+			const storagePath = await this.getPathByID(docId);
+			// Strip .sy to get the directory where child documents live
+			const dirPath = storagePath.replace(/\.sy$/, '');
 
-			for (const child of children) {
-				let kramdown = '';
-				try {
-					const kd = await this.getBlockKramdown(child.id);
-					kramdown = kd.kramdown;
-				} catch {
-					// Skip kramdown if block can't be read
+			let entries: SiYuanDirEntry[] = [];
+			try {
+				entries = await this.request<SiYuanDirEntry[]>('/api/file/readDir', { path: dirPath });
+			} catch {
+				return []; // Document has no children
+			}
+
+			const nodes: SubDocumentNode[] = [];
+			for (const entry of entries) {
+				if (!entry.isDir && entry.name.endsWith('.sy')) {
+					const childId = entry.name.replace(/\.sy$/, '');
+					let title = childId;
+					let hPath = '';
+					try {
+						const attrs = await this.getBlockAttrs(childId);
+						if (attrs?.title) title = attrs.title;
+						hPath = await this.getHPathByID(childId);
+					} catch {
+						// Fall back to ID as title if attributes can't be fetched
+					}
+
+					nodes.push({
+						id: childId,
+						title,
+						hPath,
+						updated: entry.updated,
+						children: await buildDocTree(childId, depth + 1),
+					});
 				}
-
-				const node: DocumentTreeNode = {
-					id: child.id,
-					type: child.type,
-					subType: child.subType,
-					kramdown,
-					children: await buildTree(child.id, currentDepth + 1),
-				};
-				nodes.push(node);
 			}
 			return nodes;
 		};
 
-		return buildTree(documentId, 0);
+		return buildDocTree(documentId, 0);
 	}
 
 	// ---------------------------------------------------------------------------
