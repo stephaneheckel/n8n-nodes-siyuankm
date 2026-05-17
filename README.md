@@ -163,6 +163,34 @@ All nodes in this package share the same credential.
 | Render Sprig Template | Process a Sprig template string |
 | Export Resources | Export files/folders as a zip |
 
+### Database (9 operations)
+
+Real SiYuan database (AttributeView) CRUD via the `/api/av/*` endpoints. Use this for the `:::database` blocks you can insert in the SiYuan editor.
+
+| Operation | Description |
+|-----------|-------------|
+| List | List all database (AttributeView) blocks in the workspace |
+| Create | Append a new empty database block to a parent block |
+| Get | Get the full schema and rows of a database |
+| Get Schema | Get only the column definitions (no rows) |
+| Add Row | Add a new detached row to a database |
+| Remove Row | Remove a row by its row ID |
+| Add Column | Add a column. Types: text, number, date, select, multi-select, checkbox, url, email, phone |
+| Remove Column | Remove a column by its key ID |
+| Set Cell | Set the value of a cell, with automatic type coercion |
+
+### Markdown Table (5 operations)
+
+Plain Markdown table CRUD — operates on standard pipe-delimited tables (`\| col \| col \|`). Use this when you want simple text tables rather than a real SiYuan database.
+
+| Operation | Description |
+|-----------|-------------|
+| Create | Append a new empty Markdown table to a parent block |
+| Get | Parse and return the structure and data of a Markdown table |
+| Add Row | Append a row to the table |
+| Update Row | Replace a row by its 0-based row index |
+| Delete Row | Remove a row by its 0-based row index |
+
 ## AI Agent Usage
 
 This package includes 4 AI Tool nodes designed for use with n8n's AI Agent node:

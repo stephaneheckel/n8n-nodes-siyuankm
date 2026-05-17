@@ -13,7 +13,95 @@ import type {
 	BlockOperationResult,
 	SubDocumentNode,
 	FullTextSearchResult,
+	AttributeViewKeyType,
+	RenderedAttributeView,
+	DatabaseBlockLocator,
 } from './interfaces';
+
+/** Generate a SiYuan-style ID: YYYYMMDDhhmmss-{7 lowercase alnum}. */
+function siyuanId(): string {
+	const now = new Date();
+	const pad = (n: number, w = 2) => String(n).padStart(w, '0');
+	const ts =
+		now.getFullYear().toString() +
+		pad(now.getMonth() + 1) +
+		pad(now.getDate()) +
+		pad(now.getHours()) +
+		pad(now.getMinutes()) +
+		pad(now.getSeconds());
+	const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+	let suffix = '';
+	for (let i = 0; i < 7; i++) {
+		suffix += chars[Math.floor(Math.random() * chars.length)];
+	}
+	return `${ts}-${suffix}`;
+}
+
+/** Extract the data-av-id attribute from a NodeAttributeView block's HTML. */
+function extractAvIdFromMarkdown(markdown: string): string | null {
+	const match = markdown.match(/data-av-id="([^"]+)"/);
+	return match ? match[1] : null;
+}
+
+/** Build the value object SiYuan expects for a cell of the given type. */
+function buildCellValue(
+	cellID: string,
+	keyID: string,
+	rowID: string,
+	keyType: string,
+	rawValue: unknown,
+): Record<string, unknown> {
+	const base: Record<string, unknown> = { id: cellID, keyID, blockID: rowID, type: keyType };
+	switch (keyType) {
+		case 'block': {
+			const content = rawValue === null || rawValue === undefined ? '' : String(rawValue);
+			return { ...base, isDetached: true, block: { content } };
+		}
+		case 'text': {
+			const content = rawValue === null || rawValue === undefined ? '' : String(rawValue);
+			return { ...base, text: { content } };
+		}
+		case 'number': {
+			const num = typeof rawValue === 'number' ? rawValue : Number(rawValue);
+			return { ...base, number: { content: Number.isFinite(num) ? num : 0, isNotEmpty: true } };
+		}
+		case 'checkbox': {
+			const checked = rawValue === true || rawValue === 'true' || rawValue === 1 || rawValue === '1';
+			return { ...base, checkbox: { checked } };
+		}
+		case 'url': {
+			return { ...base, url: { content: String(rawValue ?? '') } };
+		}
+		case 'email': {
+			return { ...base, email: { content: String(rawValue ?? '') } };
+		}
+		case 'phone': {
+			return { ...base, phone: { content: String(rawValue ?? '') } };
+		}
+		case 'date': {
+			const asNumber = typeof rawValue === 'number' ? rawValue : Date.parse(String(rawValue));
+			return { ...base, date: { content: Number.isFinite(asNumber) ? asNumber : 0, isNotEmpty: true } };
+		}
+		case 'select': {
+			const content = String(rawValue ?? '');
+			return { ...base, mSelect: content ? [{ content, color: '1' }] : [] };
+		}
+		case 'mSelect': {
+			const values = Array.isArray(rawValue)
+				? rawValue
+				: String(rawValue ?? '')
+						.split(',')
+						.map((s) => s.trim())
+						.filter(Boolean);
+			return {
+				...base,
+				mSelect: values.map((v: unknown) => ({ content: String(v), color: '1' })),
+			};
+		}
+		default:
+			return { ...base, text: { content: String(rawValue ?? '') } };
+	}
+}
 
 export class SiYuanClient {
 	private readonly client: AxiosInstance;
@@ -336,8 +424,8 @@ export class SiYuanClient {
 		parentID: string,
 		data: string,
 		dataType: 'markdown' | 'dom' = 'markdown',
-	): Promise<BlockOperationResult> {
-		return this.request<BlockOperationResult>('/api/block/appendBlock', {
+	): Promise<BlockOperationResult[]> {
+		return this.request<BlockOperationResult[]>('/api/block/appendBlock', {
 			parentID,
 			data,
 			dataType,
@@ -349,8 +437,8 @@ export class SiYuanClient {
 		parentID: string,
 		data: string,
 		dataType: 'markdown' | 'dom' = 'markdown',
-	): Promise<BlockOperationResult> {
-		return this.request<BlockOperationResult>('/api/block/prependBlock', {
+	): Promise<BlockOperationResult[]> {
+		return this.request<BlockOperationResult[]>('/api/block/prependBlock', {
 			parentID,
 			data,
 			dataType,
@@ -364,12 +452,12 @@ export class SiYuanClient {
 		previousID?: string,
 		nextID?: string,
 		parentID?: string,
-	): Promise<BlockOperationResult> {
+	): Promise<BlockOperationResult[]> {
 		const payload: Record<string, string> = { data, dataType };
 		if (previousID) payload.previousID = previousID;
 		if (nextID) payload.nextID = nextID;
 		if (parentID) payload.parentID = parentID;
-		return this.request<BlockOperationResult>('/api/block/insertBlock', payload);
+		return this.request<BlockOperationResult[]>('/api/block/insertBlock', payload);
 	}
 
 	/** Replaces the content of an existing block. */
@@ -377,8 +465,8 @@ export class SiYuanClient {
 		blockId: string,
 		data: string,
 		dataType: 'markdown' | 'dom' = 'markdown',
-	): Promise<BlockOperationResult> {
-		return this.request<BlockOperationResult>('/api/block/updateBlock', {
+	): Promise<BlockOperationResult[]> {
+		return this.request<BlockOperationResult[]>('/api/block/updateBlock', {
 			id: blockId,
 			data,
 			dataType,
@@ -386,8 +474,8 @@ export class SiYuanClient {
 	}
 
 	/** Permanently removes a block by its ID. */
-	async deleteBlock(blockId: string): Promise<BlockOperationResult> {
-		return this.request<BlockOperationResult>('/api/block/deleteBlock', { id: blockId });
+	async deleteBlock(blockId: string): Promise<BlockOperationResult[]> {
+		return this.request<BlockOperationResult[]>('/api/block/deleteBlock', { id: blockId });
 	}
 
 	/** Returns a list of direct child blocks under a parent. */
@@ -823,5 +911,185 @@ export class SiYuanClient {
 			);
 		}
 		return responseData.data?.succMap || {};
+	}
+
+	// ---------------------------------------------------------------------------
+	// Database (AttributeView) operations
+	// ---------------------------------------------------------------------------
+
+	/** Lists all database (AttributeView) blocks across the workspace. */
+	async listDatabaseBlocks(): Promise<DatabaseBlockLocator[]> {
+		const rows = (await this.sqlQuery(
+			"SELECT id, markdown, root_id, parent_id FROM blocks WHERE type = 'av'",
+		)) as Array<{ id: string; markdown: string; root_id: string; parent_id: string }>;
+
+		const out: DatabaseBlockLocator[] = [];
+		for (const row of rows) {
+			const avID = extractAvIdFromMarkdown(row.markdown || '');
+			if (avID) {
+				out.push({ blockID: row.id, avID, rootID: row.root_id, parentID: row.parent_id });
+			}
+		}
+		return out;
+	}
+
+	/** Appends a new (empty) database block to a parent block. Returns the new block ID and av ID. */
+	async createDatabaseBlock(parentBlockID: string): Promise<DatabaseBlockLocator> {
+		const dom = '<div data-type="NodeAttributeView" data-av-id="" data-av-type="table"></div>';
+		const result = await this.appendBlock(parentBlockID, dom, 'dom');
+		const newBlockID = result?.[0]?.doOperations?.[0]?.id;
+		if (!newBlockID) {
+			throw new Error('Failed to determine the new database block ID from the append response.');
+		}
+
+		const kramdown = await this.getBlockKramdown(newBlockID);
+		const avID = extractAvIdFromMarkdown(kramdown.kramdown);
+		if (!avID) {
+			throw new Error('Failed to locate the av ID on the newly created database block.');
+		}
+		return { blockID: newBlockID, avID, rootID: '', parentID: parentBlockID };
+	}
+
+	/** Renders a database (AttributeView) — returns name, columns, rows, viewID/type. */
+	async renderDatabase(avID: string): Promise<RenderedAttributeView> {
+		const data = await this.request<{
+			id: string;
+			name: string;
+			viewID: string;
+			viewType: string;
+			view: {
+				id: string;
+				name: string;
+				columns: Array<{
+					id: string;
+					name: string;
+					type: string;
+					icon: string;
+					hidden: boolean;
+					desc: string;
+				}>;
+				rows: Array<{
+					id: string;
+					cells: Array<{
+						id: string;
+						value: { keyID: string; type: string } & Record<string, unknown>;
+						valueType: string;
+					}>;
+				}>;
+				rowCount: number;
+			};
+		}>('/api/av/renderAttributeView', { id: avID });
+
+		return {
+			id: data.id,
+			name: data.name,
+			viewID: data.viewID,
+			viewType: data.viewType,
+			columns: data.view.columns.map((c) => ({
+				id: c.id,
+				name: c.name,
+				type: c.type,
+				icon: c.icon,
+				hidden: c.hidden,
+				desc: c.desc,
+			})),
+			rows: data.view.rows.map((r) => ({
+				id: r.id,
+				cells: r.cells.map((cell) => ({
+					id: cell.id,
+					keyID: cell.value.keyID,
+					valueType: cell.valueType,
+					value: cell.value as Record<string, unknown>,
+				})),
+			})),
+			rowCount: data.view.rowCount,
+		};
+	}
+
+	/** Adds a row (detached block) to a database. Returns the new row ID. */
+	async addDatabaseRow(
+		avID: string,
+		databaseBlockID: string,
+		primaryContent = '',
+	): Promise<{ rowID: string }> {
+		const before = await this.renderDatabase(avID);
+		const existingRowIDs = new Set(before.rows.map((r) => r.id));
+
+		await this.request<null>('/api/av/addAttributeViewBlocks', {
+			avID,
+			blockID: databaseBlockID,
+			srcs: [{ id: siyuanId(), isDetached: true, content: primaryContent }],
+		});
+
+		const after = await this.renderDatabase(avID);
+		const newRow = after.rows.find((r) => !existingRowIDs.has(r.id));
+		if (!newRow) {
+			throw new Error('Row was added but could not be located on re-render.');
+		}
+		return { rowID: newRow.id };
+	}
+
+	/** Removes one or more rows from a database. */
+	async removeDatabaseRows(avID: string, rowIDs: string[]): Promise<null> {
+		return this.request<null>('/api/av/removeAttributeViewBlocks', { avID, srcIDs: rowIDs });
+	}
+
+	/** Adds a column (key) to a database. Returns the generated keyID. */
+	async addDatabaseColumn(
+		avID: string,
+		name: string,
+		type: AttributeViewKeyType,
+		previousKeyID = '',
+		icon = '',
+	): Promise<{ keyID: string }> {
+		const keyID = siyuanId();
+		await this.request<null>('/api/av/addAttributeViewKey', {
+			avID,
+			keyID,
+			keyName: name,
+			keyType: type,
+			keyIcon: icon,
+			previousKeyID,
+		});
+		return { keyID };
+	}
+
+	/** Removes a column (key) from a database. */
+	async removeDatabaseColumn(avID: string, keyID: string): Promise<null> {
+		return this.request<null>('/api/av/removeAttributeViewKey', { avID, keyID });
+	}
+
+	/**
+	 * Sets a cell value in a database row. Resolves the cellID and the column type
+	 * automatically via renderAttributeView, then builds a properly-typed value object.
+	 */
+	async setDatabaseCell(
+		avID: string,
+		rowID: string,
+		keyID: string,
+		value: unknown,
+	): Promise<unknown> {
+		const view = await this.renderDatabase(avID);
+		const column = view.columns.find((c) => c.id === keyID);
+		if (!column) {
+			throw new Error(`Column ${keyID} not found in database ${avID}.`);
+		}
+		const row = view.rows.find((r) => r.id === rowID);
+		if (!row) {
+			throw new Error(`Row ${rowID} not found in database ${avID}.`);
+		}
+		const cell = row.cells.find((c) => c.keyID === keyID);
+		if (!cell) {
+			throw new Error(`Cell for row ${rowID} / column ${keyID} not found.`);
+		}
+
+		const builtValue = buildCellValue(cell.id, keyID, rowID, column.type, value);
+		return this.request<unknown>('/api/av/setAttributeViewBlockAttr', {
+			avID,
+			keyID,
+			rowID,
+			cellID: cell.id,
+			value: builtValue,
+		});
 	}
 }

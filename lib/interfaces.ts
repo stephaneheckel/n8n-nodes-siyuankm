@@ -117,3 +117,59 @@ export interface SiYuanErrorInfo {
 	endpoint: string;
 	suggestion: string;
 }
+
+/** SiYuan AttributeView column types. */
+export type AttributeViewKeyType =
+	| 'text'
+	| 'number'
+	| 'date'
+	| 'select'
+	| 'mSelect'
+	| 'checkbox'
+	| 'url'
+	| 'email'
+	| 'phone'
+	| 'block';
+
+/** One column in an attribute view. */
+export interface AttributeViewColumn {
+	id: string;
+	name: string;
+	type: AttributeViewKeyType | string;
+	icon: string;
+	hidden: boolean;
+	desc: string;
+}
+
+/** One cell value in an attribute view row. */
+export interface AttributeViewCell {
+	id: string;
+	keyID: string;
+	valueType: string;
+	value: Record<string, unknown>;
+}
+
+/** One row (block) in an attribute view. */
+export interface AttributeViewRow {
+	id: string;
+	cells: AttributeViewCell[];
+}
+
+/** Rendered attribute view: schema + data. */
+export interface RenderedAttributeView {
+	id: string;
+	name: string;
+	viewID: string;
+	viewType: string;
+	columns: AttributeViewColumn[];
+	rows: AttributeViewRow[];
+	rowCount: number;
+}
+
+/** Locator for a database block in the workspace. */
+export interface DatabaseBlockLocator {
+	blockID: string;
+	avID: string;
+	rootID: string;
+	parentID: string;
+}

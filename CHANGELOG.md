@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-05-17
+
+### Added
+- **New `Database` resource** — real SiYuan AttributeView CRUD via `/api/av/*`. Operations: List, Create, Get, Get Schema, Add Row, Remove Row, Add Column, Remove Column, Set Cell. Supports text, number, date, select, multi-select, checkbox, url, email, and phone column types. Closes #2.
+- **New `Markdown Table` resource** — refactored from PR #3 (thanks @chaimt). Plain Markdown table CRUD (parses pipe-delimited rows): Create, Get, Add Row, Update Row, Delete Row. Parsing logic moved to `lib/markdownTable.ts`.
+
+### Fixed
+- **Document > Get Document Path by ID** and **Get Document ID by Path** now return a well-formed object (`{ id, path, found }` / `{ notebookId, path, ids, count, found, id }`) instead of a raw string / string array. n8n's Schema and Table tabs now render correctly, and downstream IF nodes no longer abort when a document is not found. Also wrapped `Get Storage Path`, `Get Readable Path from Storage Path`, and `Get Content`. Closes #6.
+
 ## [2.0.0] - 2026-04-10
 
 ### Breaking Changes
