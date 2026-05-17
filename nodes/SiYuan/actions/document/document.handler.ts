@@ -31,11 +31,30 @@ export async function handleDocumentOperation(
 		case 'getIdByPath': {
 			const notebookId = ctx.getNodeParameter('notebookId', itemIndex) as string;
 			const docPath = ctx.getNodeParameter('docPath', itemIndex) as string;
-			return client.getIDsByHPath(docPath, notebookId);
+			const ids = (await client.getIDsByHPath(docPath, notebookId)) || [];
+			return {
+				notebookId,
+				path: docPath,
+				ids,
+				count: ids.length,
+				found: ids.length > 0,
+				id: ids[0] ?? null,
+			};
 		}
 		case 'getPathById': {
 			const docId = ctx.getNodeParameter('docId', itemIndex) as string;
-			return client.getHPathByID(docId);
+			let path: string | null = null;
+			try {
+				const result = await client.getHPathByID(docId);
+				path = result && result.length > 0 ? result : null;
+			} catch {
+				path = null;
+			}
+			return {
+				id: docId,
+				path,
+				found: path !== null,
+			};
 		}
 		case 'listInNotebook': {
 			const notebookId = ctx.getNodeParameter('notebookId', itemIndex) as string;
@@ -47,16 +66,40 @@ export async function handleDocumentOperation(
 		}
 		case 'getStoragePath': {
 			const docId = ctx.getNodeParameter('docId', itemIndex) as string;
-			return client.getPathByID(docId);
+			let storagePath: string | null = null;
+			try {
+				const result = await client.getPathByID(docId);
+				storagePath = result && result.length > 0 ? result : null;
+			} catch {
+				storagePath = null;
+			}
+			return {
+				id: docId,
+				storagePath,
+				found: storagePath !== null,
+			};
 		}
 		case 'getHPathByPath': {
 			const notebookId = ctx.getNodeParameter('notebookId', itemIndex) as string;
 			const storagePath = ctx.getNodeParameter('storagePath', itemIndex) as string;
-			return client.getHPathByPath(notebookId, storagePath);
+			let path: string | null = null;
+			try {
+				const result = await client.getHPathByPath(notebookId, storagePath);
+				path = result && result.length > 0 ? result : null;
+			} catch {
+				path = null;
+			}
+			return {
+				notebookId,
+				storagePath,
+				path,
+				found: path !== null,
+			};
 		}
 		case 'getContent': {
 			const docId = ctx.getNodeParameter('docId', itemIndex) as string;
-			return client.getDocContent(docId);
+			const content = await client.getDocContent(docId);
+			return { id: docId, content: content ?? '' };
 		}
 		case 'getTree': {
 			const docId = ctx.getNodeParameter('docId', itemIndex) as string;
