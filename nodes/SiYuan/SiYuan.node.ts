@@ -15,7 +15,12 @@ import { formatErrorForAgent } from '../../lib/errors';
 import { assetOperations, assetFields } from './actions/asset/asset.description';
 import { attributeOperations, attributeFields } from './actions/attribute/attribute.description';
 import { blockOperations, blockFields } from './actions/block/block.description';
+import { databaseOperations, databaseFields } from './actions/database/database.description';
 import { documentOperations, documentFields } from './actions/document/document.description';
+import {
+	markdownTableOperations,
+	markdownTableFields,
+} from './actions/markdownTable/markdownTable.description';
 import { notebookOperations, notebookFields } from './actions/notebook/notebook.description';
 import { searchOperations, searchFields } from './actions/search/search.description';
 import { systemOperations, systemFields } from './actions/system/system.description';
@@ -25,7 +30,9 @@ import { tagOperations, tagFields } from './actions/tag/tag.description';
 import { handleAssetOperation } from './actions/asset/asset.handler';
 import { handleAttributeOperation } from './actions/attribute/attribute.handler';
 import { handleBlockOperation } from './actions/block/block.handler';
+import { handleDatabaseOperation } from './actions/database/database.handler';
 import { handleDocumentOperation } from './actions/document/document.handler';
+import { handleMarkdownTableOperation } from './actions/markdownTable/markdownTable.handler';
 import { handleNotebookOperation } from './actions/notebook/notebook.handler';
 import { handleSearchOperation } from './actions/search/search.handler';
 import { handleSystemOperation } from './actions/system/system.handler';
@@ -38,7 +45,9 @@ const RESOURCE_HANDLERS: Record<
 	asset: handleAssetOperation,
 	attribute: handleAttributeOperation,
 	block: handleBlockOperation,
+	database: handleDatabaseOperation,
 	document: handleDocumentOperation,
+	markdownTable: handleMarkdownTableOperation,
 	notebook: handleNotebookOperation,
 	search: handleSearchOperation,
 	system: handleSystemOperation,
@@ -95,9 +104,20 @@ export class SiYuan implements INodeType {
 						description: 'Create, read, update, and delete content blocks within documents',
 					},
 					{
+						name: 'Database',
+						value: 'database',
+						description:
+							'Create and manage SiYuan databases (AttributeView blocks): rows, columns, and cell values',
+					},
+					{
 						name: 'Document',
 						value: 'document',
 						description: 'Create, rename, move, remove, and export documents',
+					},
+					{
+						name: 'Markdown Table',
+						value: 'markdownTable',
+						description: 'Create and manage plain Markdown table blocks (rows as text)',
 					},
 					{
 						name: 'Notebook',
@@ -127,7 +147,9 @@ export class SiYuan implements INodeType {
 			assetOperations,
 			attributeOperations,
 			blockOperations,
+			databaseOperations,
 			documentOperations,
+			markdownTableOperations,
 			notebookOperations,
 			searchOperations,
 			systemOperations,
@@ -137,7 +159,9 @@ export class SiYuan implements INodeType {
 			...assetFields,
 			...attributeFields,
 			...blockFields,
+			...databaseFields,
 			...documentFields,
+			...markdownTableFields,
 			...notebookFields,
 			...searchFields,
 			...systemFields,

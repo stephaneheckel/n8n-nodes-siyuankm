@@ -199,8 +199,7 @@ export const documentFields: INodeProperties[] = [
 				name: 'maxDepth',
 				type: 'number',
 				default: 5,
-				description:
-					'Maximum depth of the sub-document tree to retrieve.',
+				description: 'Maximum depth of the sub-document tree to retrieve',
 			},
 		],
 	},
