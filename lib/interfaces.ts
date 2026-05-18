@@ -172,4 +172,9 @@ export interface DatabaseBlockLocator {
 	avID: string;
 	rootID: string;
 	parentID: string;
+	/**
+	 * Display name of the av (empty string for freshly-created or unnamed databases).
+	 * Populated by createDatabaseBlock and by the database.list handler (issue #12).
+	 */
+	name?: string;
 }
