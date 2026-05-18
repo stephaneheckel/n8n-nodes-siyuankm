@@ -66,15 +66,20 @@ export async function handleDocumentOperation(
 		}
 		case 'getStoragePath': {
 			const docId = ctx.getNodeParameter('docId', itemIndex) as string;
+			let notebook: string | null = null;
 			let storagePath: string | null = null;
 			try {
 				const result = await client.getPathByID(docId);
-				storagePath = result && result.length > 0 ? result : null;
+				if (result && result.path) {
+					notebook = result.notebook;
+					storagePath = result.path;
+				}
 			} catch {
-				storagePath = null;
+				/* leave both null */
 			}
 			return {
 				id: docId,
+				notebook,
 				storagePath,
 				found: storagePath !== null,
 			};

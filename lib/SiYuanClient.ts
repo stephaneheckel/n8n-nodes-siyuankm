@@ -103,6 +103,46 @@ function buildCellValue(
 	}
 }
 
+/**
+ * Inverse of buildCellValue: given a typed cell value object from renderAttributeView
+ * and the column type, return a plain JS scalar/array for downstream consumption.
+ */
+export function extractTypedCellValue(value: Record<string, unknown> | undefined, type: string): unknown {
+	if (!value) return null;
+	const get = (k: string): Record<string, unknown> | undefined =>
+		value[k] as Record<string, unknown> | undefined;
+	switch (type) {
+		case 'text':
+			return (get('text')?.content as string) ?? null;
+		case 'block':
+			return (get('block')?.content as string) ?? null;
+		case 'number':
+			return (get('number')?.content as number) ?? null;
+		case 'checkbox':
+			return Boolean(get('checkbox')?.checked);
+		case 'url':
+			return (get('url')?.content as string) ?? null;
+		case 'email':
+			return (get('email')?.content as string) ?? null;
+		case 'phone':
+			return (get('phone')?.content as string) ?? null;
+		case 'date': {
+			const ts = get('date')?.content as number | undefined;
+			return typeof ts === 'number' && ts > 0 ? new Date(ts).toISOString() : null;
+		}
+		case 'select':
+		case 'mSelect': {
+			const arr = value.mSelect as Array<{ content: string }> | undefined;
+			if (!arr || arr.length === 0) return type === 'select' ? null : [];
+			const contents = arr.map((s) => s.content);
+			return type === 'select' ? contents[0] : contents;
+		}
+		default:
+			// Unknown type — return the raw value object so the user can extract what they need
+			return value;
+	}
+}
+
 export class SiYuanClient {
 	private readonly client: AxiosInstance;
 
@@ -350,9 +390,20 @@ export class SiYuanClient {
 		return documents;
 	}
 
-	/** Returns the internal storage path for a document by its ID (e.g., `/data/notebookId/docId.sy`). */
-	async getPathByID(id: string): Promise<string> {
-		return this.request<string>('/api/filetree/getPathByID', { id });
+	/**
+	 * Returns the internal storage path + notebook for a document by its ID.
+	 * SiYuan kernel returns an object — earlier versions of this client mistyped it as a string,
+	 * which broke `buildDocTree` when callers tried `.replace()` on the response (see issue #9).
+	 */
+	async getPathByID(id: string): Promise<{ notebook: string; path: string }> {
+		return this.request<{ notebook: string; path: string }>('/api/filetree/getPathByID', { id });
+	}
+
+	/** Returns block lineage (rootID, box, path, rootTitle) for a block. */
+	async getBlockInfo(
+		id: string,
+	): Promise<{ box: string; path: string; rootID: string; rootChildID: string; rootIcon: string; rootTitle: string }> {
+		return this.request('/api/block/getBlockInfo', { id });
 	}
 
 	/** Converts a storage path to a human-readable path within a notebook. */
@@ -374,10 +425,11 @@ export class SiYuanClient {
 		const buildDocTree = async (docId: string, depth: number): Promise<SubDocumentNode[]> => {
 			if (depth >= maxDepth) return [];
 
-			// getPathByID returns e.g. "/data/notebookId/docId.sy"
-			const storagePath = await this.getPathByID(docId);
-			// Strip .sy to get the directory where child documents live
-			const dirPath = storagePath.replace(/\.sy$/, '');
+			// getPathByID returns { notebook, path } where path is e.g. "/docId.sy" relative to the notebook.
+			// The file system path is `/data/<notebook>/<path>` — strip the trailing .sy to get the
+			// directory that holds child documents (SiYuan stores sub-docs as <parent-id>/<child-id>.sy).
+			const { notebook, path } = await this.getPathByID(docId);
+			const dirPath = `/data/${notebook}${path}`.replace(/\.sy$/, '');
 
 			let entries: SiYuanDirEntry[] = [];
 			try {
@@ -933,7 +985,12 @@ export class SiYuanClient {
 		return out;
 	}
 
-	/** Appends a new (empty) database block to a parent block. Returns the new block ID and av ID. */
+	/**
+	 * Appends a new (empty) database block to a parent block. Returns the new block ID, av ID,
+	 * the resolved root document ID and the database's display name. (Issue #10: the previous
+	 * implementation hardcoded `rootID: ''` because the appendBlock response only carries the
+	 * direct parent — we now resolve the real root via getBlockInfo.)
+	 */
 	async createDatabaseBlock(parentBlockID: string): Promise<DatabaseBlockLocator> {
 		const dom = '<div data-type="NodeAttributeView" data-av-id="" data-av-type="table"></div>';
 		const result = await this.appendBlock(parentBlockID, dom, 'dom');
@@ -947,7 +1004,26 @@ export class SiYuanClient {
 		if (!avID) {
 			throw new Error('Failed to locate the av ID on the newly created database block.');
 		}
-		return { blockID: newBlockID, avID, rootID: '', parentID: parentBlockID };
+
+		let rootID = '';
+		let name = '';
+		try {
+			const info = await this.getBlockInfo(newBlockID);
+			rootID = info.rootID || '';
+		} catch {
+			/* keep rootID empty if lookup fails — non-fatal */
+		}
+		try {
+			const rendered = await this.request<{ name?: string }>(
+				'/api/av/renderAttributeView',
+				{ id: avID },
+			);
+			name = rendered?.name || '';
+		} catch {
+			/* keep name empty */
+		}
+
+		return { blockID: newBlockID, avID, rootID, parentID: parentBlockID, name };
 	}
 
 	/** Renders a database (AttributeView) — returns name, columns, rows, viewID/type. */

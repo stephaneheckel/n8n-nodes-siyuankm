@@ -116,6 +116,137 @@ export const databaseFields: INodeProperties[] = [
 		displayOptions: { show: { resource: ['database'], operation: ['addRow'] } },
 	},
 	{
+		displayName: 'Add Row Mode',
+		name: 'addRowMode',
+		type: 'options',
+		default: 'simple',
+		description:
+			'Whether to create the row blank (simple) or set additional column values at the same time (fields)',
+		displayOptions: { show: { resource: ['database'], operation: ['addRow'] } },
+		options: [
+			{
+				name: 'Simple (Primary Key Only)',
+				value: 'simple',
+				description: 'Create a blank row with only the primary key set',
+			},
+			{
+				name: 'With Fields',
+				value: 'fields',
+				description: 'Set additional column values during creation',
+			},
+		],
+	},
+	{
+		displayName: 'Fields Mode',
+		name: 'fieldsMode',
+		type: 'options',
+		default: 'byKeyId',
+		description: 'How to identify the columns to set',
+		displayOptions: {
+			show: { resource: ['database'], operation: ['addRow'], addRowMode: ['fields'] },
+		},
+		options: [
+			{
+				name: 'By Column (Key) ID',
+				value: 'byKeyId',
+				description: 'Repeat field with explicit keyID + value entries',
+			},
+			{
+				name: 'By Column Name (JSON)',
+				value: 'byColumnName',
+				description: 'JSON object mapping column display names to values',
+			},
+		],
+	},
+	{
+		displayName: 'Fields',
+		name: 'fieldsByKeyId',
+		type: 'fixedCollection',
+		typeOptions: { multipleValues: true },
+		default: {},
+		description: 'Field/value pairs to set on the new row',
+		displayOptions: {
+			show: {
+				resource: ['database'],
+				operation: ['addRow'],
+				addRowMode: ['fields'],
+				fieldsMode: ['byKeyId'],
+			},
+		},
+		options: [
+			{
+				name: 'field',
+				displayName: 'Field',
+				values: [
+					{
+						displayName: 'Column (Key) ID',
+						name: 'keyId',
+						type: 'string',
+						default: '',
+						description: 'The ID of the column to set',
+					},
+					{
+						displayName: 'Value',
+						name: 'value',
+						type: 'string',
+						default: '',
+						description:
+							'Value for the cell. Booleans, numbers, and dates are coerced based on the column type.',
+					},
+				],
+			},
+		],
+	},
+	{
+		displayName: 'Fields (JSON)',
+		name: 'fieldsByColumnName',
+		type: 'string',
+		typeOptions: { rows: 4 },
+		default: '',
+		placeholder: '{ "Title": "Hello", "Done": true }',
+		description: 'JSON object mapping column display names to values',
+		displayOptions: {
+			show: {
+				resource: ['database'],
+				operation: ['addRow'],
+				addRowMode: ['fields'],
+				fieldsMode: ['byColumnName'],
+			},
+		},
+	},
+	{
+		displayName: 'Output Mode',
+		name: 'getOutputMode',
+		type: 'options',
+		default: 'split',
+		description:
+			'How to shape the output: split returns one item per row with flat column-name keys (recommended); single returns a single item containing the full schema and rows',
+		displayOptions: { show: { resource: ['database'], operation: ['get'] } },
+		options: [
+			{
+				name: 'Split (One Item per Row)',
+				value: 'split',
+				description: 'Flat records keyed by column display name. Each row is its own n8n item.',
+			},
+			{
+				name: 'Single (Schema + Rows)',
+				value: 'single',
+				description: 'One item containing the database schema and an array of flat rows',
+			},
+		],
+	},
+	{
+		displayName: 'Filter (JSON)',
+		name: 'getFilter',
+		type: 'string',
+		typeOptions: { rows: 3 },
+		default: '',
+		placeholder: '{ "Done": true }',
+		description:
+			'Optional JSON object — only rows where every field matches will be returned. Applied client-side after fetch.',
+		displayOptions: { show: { resource: ['database'], operation: ['get'] } },
+	},
+	{
 		displayName: 'Row ID',
 		name: 'rowId',
 		type: 'string',

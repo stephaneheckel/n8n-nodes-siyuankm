@@ -1,0 +1,273 @@
+/* eslint-disable no-console */
+/**
+ * Integration test for the v2.1.1 fixes (issues #9, #10, #12) against a live SiYuan kernel.
+ *
+ * Usage:
+ *   SIYUAN_URL=http://10.0.0.101:6806 SIYUAN_TOKEN=... pnpm tsx tests/integration/database.test.ts
+ *
+ * Creates a throwaway notebook, exercises each handler, then removes the notebook.
+ * Exits 0 on success, 1 on any assertion failure (no test framework — kept self-contained).
+ */
+import { SiYuanClient } from '../../lib/SiYuanClient';
+import { handleDatabaseOperation } from '../../nodes/SiYuan/actions/database/database.handler';
+import { handleDocumentOperation } from '../../nodes/SiYuan/actions/document/document.handler';
+
+const url = process.env.SIYUAN_URL;
+const token = process.env.SIYUAN_TOKEN;
+if (!url || !token) {
+	console.error('Set SIYUAN_URL and SIYUAN_TOKEN env vars.');
+	process.exit(2);
+}
+
+const client = new SiYuanClient(url, token);
+
+let failures = 0;
+function ok(label: string) {
+	console.log(`  ✓ ${label}`);
+}
+function fail(label: string, detail: unknown) {
+	failures += 1;
+	console.log(`  ✗ ${label}`);
+	console.log(`     ${typeof detail === 'string' ? detail : JSON.stringify(detail)}`);
+}
+function assert(cond: unknown, label: string, detail?: unknown) {
+	if (cond) ok(label);
+	else fail(label, detail);
+}
+
+/**
+ * Build a minimal IExecuteFunctions stub that returns the supplied parameter map.
+ * Casts as any so we don't pull in the full n8n-workflow IExecuteFunctions surface.
+ */
+function makeCtx(params: Record<string, unknown>): any {
+	return {
+		getNodeParameter(name: string, _i: number, fallback?: unknown): unknown {
+			if (name in params) return params[name];
+			return fallback;
+		},
+	};
+}
+
+async function main() {
+	const notebookName = `n8n-test-${Date.now()}`;
+	console.log(`\n→ creating throwaway notebook "${notebookName}"`);
+	const notebook = await client.createNotebook(notebookName);
+	const notebookId = notebook.id;
+	console.log(`  notebookId=${notebookId}`);
+
+	try {
+		console.log('\n→ creating test doc');
+		const docId = await client.createDocWithMd(notebookId, '/test', '# Test doc\n\nBody.');
+		console.log(`  docId=${docId}`);
+
+		// -------------------------------------------------------------------
+		// Issue #9 — Document > Get Document Tree must not throw on a leaf doc
+		// -------------------------------------------------------------------
+		console.log('\n→ #9: getDocumentTree on leaf doc');
+		try {
+			const tree = await client.getDocumentTree(docId, 5);
+			assert(Array.isArray(tree), 'returns an array', tree);
+			assert(tree.length === 0, 'leaf doc has zero children', tree);
+		} catch (e) {
+			fail('did not throw', (e as Error).message);
+		}
+
+		// Also exercise via the document handler getStoragePath operation
+		console.log('\n→ #9: document.getStoragePath handler');
+		const docHandler = await handleDocumentOperation(
+			client,
+			'getStoragePath',
+			makeCtx({ docId }) as any,
+			0,
+		);
+		assert(typeof docHandler === 'object' && docHandler !== null, 'returns object', docHandler);
+		const dh = docHandler as Record<string, unknown>;
+		assert(dh.found === true, 'found:true', dh);
+		assert(typeof dh.storagePath === 'string', 'storagePath is a string', dh);
+		assert(typeof dh.notebook === 'string', 'notebook is a string', dh);
+
+		// -------------------------------------------------------------------
+		// Issue #10 — Create returns well-formed locator with rootID populated
+		// -------------------------------------------------------------------
+		console.log('\n→ #10: database.create');
+		const create = (await handleDatabaseOperation(
+			client,
+			'create',
+			makeCtx({ parentBlockId: docId }) as any,
+			0,
+		)) as Record<string, unknown>;
+		assert(typeof create.blockID === 'string' && create.blockID.length > 0, 'blockID populated', create);
+		assert(typeof create.avID === 'string' && create.avID.length > 0, 'avID populated', create);
+		assert(create.rootID === docId, `rootID === docId (got ${create.rootID})`, create);
+		assert(create.parentID === docId, 'parentID === docId', create);
+		assert('name' in create, 'name field present', create);
+
+		const avId = create.avID as string;
+		const dbBlockId = create.blockID as string;
+
+		// -------------------------------------------------------------------
+		// Issue #12: addColumn × 3, addRow with fields (both modes), get split/single, list shape
+		// -------------------------------------------------------------------
+		console.log('\n→ #12: addColumn × 3 (text, number, checkbox)');
+		const colText = (await handleDatabaseOperation(
+			client,
+			'addColumn',
+			makeCtx({ avId, columnName: 'Title', columnType: 'text' }) as any,
+			0,
+		)) as Record<string, string>;
+		const colNum = (await handleDatabaseOperation(
+			client,
+			'addColumn',
+			makeCtx({ avId, columnName: 'Count', columnType: 'number' }) as any,
+			0,
+		)) as Record<string, string>;
+		const colCheck = (await handleDatabaseOperation(
+			client,
+			'addColumn',
+			makeCtx({ avId, columnName: 'Done', columnType: 'checkbox' }) as any,
+			0,
+		)) as Record<string, string>;
+		assert(!!colText.keyID && !!colNum.keyID && !!colCheck.keyID, 'all keyIDs returned');
+
+		console.log('\n→ #12a: addRow with fields by keyId');
+		const row1 = (await handleDatabaseOperation(
+			client,
+			'addRow',
+			makeCtx({
+				avId,
+				databaseBlockId: dbBlockId,
+				primaryKeyContent: 'Row One',
+				addRowMode: 'fields',
+				fieldsMode: 'byKeyId',
+				'fieldsByKeyId.field': [
+					{ keyId: colText.keyID, value: 'Alpha' },
+					{ keyId: colNum.keyID, value: '42' },
+					{ keyId: colCheck.keyID, value: 'true' },
+				],
+			}) as any,
+			0,
+		)) as Record<string, unknown>;
+		assert(row1.fieldsSet === 3, 'fieldsSet === 3 (byKeyId)', row1);
+		assert(typeof row1.rowID === 'string', 'rowID present', row1);
+
+		console.log('\n→ #12a: addRow with fields by column name (JSON)');
+		const row2 = (await handleDatabaseOperation(
+			client,
+			'addRow',
+			makeCtx({
+				avId,
+				databaseBlockId: dbBlockId,
+				primaryKeyContent: 'Row Two',
+				addRowMode: 'fields',
+				fieldsMode: 'byColumnName',
+				fieldsByColumnName: JSON.stringify({ Title: 'Beta', Count: 7, Done: false }),
+			}) as any,
+			0,
+		)) as Record<string, unknown>;
+		assert(row2.fieldsSet === 3, 'fieldsSet === 3 (byColumnName)', row2);
+
+		console.log('\n→ #12a: addRow simple mode still works');
+		const row3 = (await handleDatabaseOperation(
+			client,
+			'addRow',
+			makeCtx({
+				avId,
+				databaseBlockId: dbBlockId,
+				primaryKeyContent: 'Row Three',
+				addRowMode: 'simple',
+			}) as any,
+			0,
+		)) as Record<string, unknown>;
+		assert(row3.fieldsSet === 0, 'simple mode sets no fields', row3);
+
+		console.log('\n→ #12b: get in split mode returns flat per-row array');
+		const splitRows = (await handleDatabaseOperation(
+			client,
+			'get',
+			makeCtx({ avId, getOutputMode: 'split', getFilter: '' }) as any,
+			0,
+		)) as Array<Record<string, unknown>>;
+		assert(Array.isArray(splitRows), 'split mode returns an array', splitRows);
+		assert(splitRows.length === 3, 'three rows returned', splitRows.length);
+		const sample = splitRows[0];
+		assert('_rowId' in sample && '_avId' in sample, '_rowId + _avId present', sample);
+		assert('Title' in sample && 'Count' in sample && 'Done' in sample, 'flat column keys present', sample);
+
+		console.log('\n→ #12b: get in single mode returns nested object');
+		const single = (await handleDatabaseOperation(
+			client,
+			'get',
+			makeCtx({ avId, getOutputMode: 'single', getFilter: '' }) as any,
+			0,
+		)) as Record<string, unknown>;
+		assert(Array.isArray(single.columns), 'single mode has columns array', single);
+		assert(Array.isArray(single.rows) && (single.rows as unknown[]).length === 3, 'single mode has 3 rows', single);
+		assert(single.rowCount === 3, 'rowCount === 3', single);
+
+		console.log('\n→ #12b: get with filter (Done: true) returns only matching row');
+		const filtered = (await handleDatabaseOperation(
+			client,
+			'get',
+			makeCtx({ avId, getOutputMode: 'split', getFilter: JSON.stringify({ Done: true }) }) as any,
+			0,
+		)) as Array<Record<string, unknown>>;
+		assert(filtered.length === 1, 'one row matches Done:true', filtered);
+		assert(filtered[0].Title === 'Alpha', 'matching row has Title=Alpha', filtered[0]);
+
+		console.log('\n→ #12c: list returns per-row items with name (waiting 3s for SiYuan SQL index)');
+		await new Promise((r) => setTimeout(r, 3000));
+		const list = (await handleDatabaseOperation(
+			client,
+			'list',
+			makeCtx({}) as any,
+			0,
+		)) as Array<Record<string, unknown>>;
+		assert(Array.isArray(list), 'list returns an array', list);
+		const ours = list.find((d) => d.avID === avId);
+		assert(!!ours, 'our av appears in the list', list.map((d) => d.avID));
+		if (ours) {
+			assert('name' in ours, 'list item has name field', ours);
+			assert('avID' in ours && 'blockID' in ours, 'list item has avID + blockID', ours);
+		}
+
+		// addRow with unknown column name should throw with a clear message
+		console.log('\n→ #12a: addRow with unknown column name throws clear error');
+		let threw = false;
+		try {
+			await handleDatabaseOperation(
+				client,
+				'addRow',
+				makeCtx({
+					avId,
+					databaseBlockId: dbBlockId,
+					primaryKeyContent: 'Row Four',
+					addRowMode: 'fields',
+					fieldsMode: 'byColumnName',
+					fieldsByColumnName: JSON.stringify({ Nope: 'x' }),
+				}) as any,
+				0,
+			);
+		} catch (e) {
+			threw = true;
+			const msg = (e as Error).message;
+			assert(msg.includes('Nope'), 'error message names the bad column', msg);
+		}
+		assert(threw, 'threw on unknown column');
+	} finally {
+		console.log(`\n→ cleanup: removing notebook ${notebookId}`);
+		try {
+			await client.removeNotebook(notebookId);
+			console.log('  cleanup ok');
+		} catch (e) {
+			console.log(`  cleanup failed: ${(e as Error).message}`);
+		}
+	}
+
+	console.log(`\n${failures === 0 ? '✅ ALL CHECKS PASSED' : `❌ ${failures} CHECK(S) FAILED`}`);
+	process.exit(failures === 0 ? 0 : 1);
+}
+
+main().catch((e) => {
+	console.error('Unexpected error:', e);
+	process.exit(1);
+});

@@ -1,6 +1,30 @@
 import type { IExecuteFunctions } from 'n8n-workflow';
-import type { SiYuanClient } from '../../../../lib/SiYuanClient';
-import type { AttributeViewKeyType } from '../../../../lib/interfaces';
+import { SiYuanClient, extractTypedCellValue } from '../../../../lib/SiYuanClient';
+import type { AttributeViewKeyType, RenderedAttributeView } from '../../../../lib/interfaces';
+
+/** Build a flat {column-name → value} record for one row plus tracing metadata. */
+function flattenRow(
+	view: RenderedAttributeView,
+	row: RenderedAttributeView['rows'][number],
+): Record<string, unknown> {
+	const columnsByKeyId = new Map<string, RenderedAttributeView['columns'][number]>();
+	for (const c of view.columns) columnsByKeyId.set(c.id, c);
+
+	const flat: Record<string, unknown> = { _rowId: row.id, _avId: view.id };
+	for (const cell of row.cells) {
+		const col = columnsByKeyId.get(cell.keyID);
+		if (!col) continue;
+		flat[col.name] = extractTypedCellValue(cell.value, col.type);
+	}
+	return flat;
+}
+
+/** Apply a simple equality filter (top-level field === value) to a list of flat rows. */
+function applyFilter(rows: Record<string, unknown>[], filter: Record<string, unknown>): Record<string, unknown>[] {
+	const keys = Object.keys(filter);
+	if (keys.length === 0) return rows;
+	return rows.filter((r) => keys.every((k) => r[k] === filter[k]));
+}
 
 export async function handleDatabaseOperation(
 	client: SiYuanClient,
@@ -10,8 +34,28 @@ export async function handleDatabaseOperation(
 ): Promise<unknown> {
 	switch (operation) {
 		case 'list': {
-			const databases = await client.listDatabaseBlocks();
-			return { databases, count: databases.length };
+			// Issue #12c: return one n8n item per database, including the av name.
+			const locators = await client.listDatabaseBlocks();
+			const enriched = await Promise.all(
+				locators.map(async (loc) => {
+					let name = '';
+					try {
+						const view = await client.renderDatabase(loc.avID);
+						name = view.name || '';
+					} catch {
+						/* leave empty */
+					}
+					return {
+						name,
+						avID: loc.avID,
+						blockID: loc.blockID,
+						rootID: loc.rootID,
+						parentID: loc.parentID,
+					};
+				}),
+			);
+			// Returning the array directly lets n8n's returnJsonArray split it per row.
+			return enriched;
 		}
 
 		case 'create': {
@@ -21,7 +65,42 @@ export async function handleDatabaseOperation(
 
 		case 'get': {
 			const avId = ctx.getNodeParameter('avId', itemIndex) as string;
-			return client.renderDatabase(avId);
+			const outputMode = ctx.getNodeParameter('getOutputMode', itemIndex, 'split') as
+				| 'split'
+				| 'single';
+			const filterRaw = ctx.getNodeParameter('getFilter', itemIndex, '') as string;
+
+			let filter: Record<string, unknown> = {};
+			if (filterRaw && filterRaw.trim().length > 0) {
+				try {
+					filter = JSON.parse(filterRaw);
+					if (typeof filter !== 'object' || filter === null || Array.isArray(filter)) {
+						throw new Error('Filter must be a JSON object');
+					}
+				} catch (e) {
+					throw new Error(
+						`Invalid Filter JSON: ${(e as Error).message}. Expected a JSON object like {"Done": true}.`,
+					);
+				}
+			}
+
+			const view = await client.renderDatabase(avId);
+			const flatRows = view.rows.map((r) => flattenRow(view, r));
+			const filteredRows = applyFilter(flatRows, filter);
+
+			if (outputMode === 'single') {
+				return {
+					id: view.id,
+					name: view.name,
+					viewID: view.viewID,
+					viewType: view.viewType,
+					columns: view.columns,
+					rows: filteredRows,
+					rowCount: filteredRows.length,
+				};
+			}
+			// Default: split — return the array of flat rows so n8n outputs one item per row.
+			return filteredRows;
 		}
 
 		case 'getSchema': {
@@ -40,8 +119,63 @@ export async function handleDatabaseOperation(
 			const avId = ctx.getNodeParameter('avId', itemIndex) as string;
 			const databaseBlockId = ctx.getNodeParameter('databaseBlockId', itemIndex) as string;
 			const primaryContent = ctx.getNodeParameter('primaryKeyContent', itemIndex, '') as string;
+			const addRowMode = ctx.getNodeParameter('addRowMode', itemIndex, 'simple') as
+				| 'simple'
+				| 'fields';
+
 			const { rowID } = await client.addDatabaseRow(avId, databaseBlockId, primaryContent);
-			return { avID: avId, rowID, primaryKeyContent: primaryContent };
+
+			let fieldsSet = 0;
+			if (addRowMode === 'fields') {
+				const fieldsMode = ctx.getNodeParameter('fieldsMode', itemIndex, 'byKeyId') as
+					| 'byKeyId'
+					| 'byColumnName';
+
+				const pairs: Array<{ keyId: string; value: unknown }> = [];
+
+				if (fieldsMode === 'byKeyId') {
+					const raw = ctx.getNodeParameter(
+						'fieldsByKeyId.field',
+						itemIndex,
+						[],
+					) as Array<{ keyId: string; value: string }>;
+					for (const r of raw) {
+						if (r.keyId) pairs.push({ keyId: r.keyId, value: r.value });
+					}
+				} else {
+					const jsonRaw = ctx.getNodeParameter('fieldsByColumnName', itemIndex, '') as string;
+					if (jsonRaw && jsonRaw.trim().length > 0) {
+						let parsed: Record<string, unknown>;
+						try {
+							parsed = JSON.parse(jsonRaw);
+						} catch (e) {
+							throw new Error(
+								`Invalid Fields JSON: ${(e as Error).message}. Expected {"Column Name": value}.`,
+							);
+						}
+						if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+							throw new Error('Fields JSON must be an object {"Column Name": value}.');
+						}
+						// Resolve column NAMES → keyIDs (one renderDatabase call).
+						const view = await client.renderDatabase(avId);
+						const byName = new Map(view.columns.map((c) => [c.name, c.id]));
+						for (const [name, value] of Object.entries(parsed)) {
+							const keyId = byName.get(name);
+							if (!keyId) {
+								throw new Error(`Column "${name}" not found in database. Existing columns: ${[...byName.keys()].join(', ')}`);
+							}
+							pairs.push({ keyId, value });
+						}
+					}
+				}
+
+				for (const { keyId, value } of pairs) {
+					await client.setDatabaseCell(avId, rowID, keyId, value);
+					fieldsSet += 1;
+				}
+			}
+
+			return { avID: avId, rowID, primaryKeyContent: primaryContent, fieldsSet };
 		}
 
 		case 'removeRow': {
