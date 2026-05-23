@@ -969,6 +969,23 @@ export class SiYuanClient {
 	// Database (AttributeView) operations
 	// ---------------------------------------------------------------------------
 
+	/**
+	 * Resolves the hosting block ID for a given AttributeView ID by scanning all av-typed
+	 * blocks for the matching `data-av-id`. Throws if no block hosts that AV.
+	 */
+	async getBlockIdByAvId(avID: string): Promise<string> {
+		const rows = (await this.sqlQuery(
+			"SELECT id, markdown FROM blocks WHERE type = 'av'",
+		)) as Array<{ id: string; markdown: string }>;
+
+		for (const row of rows) {
+			if (extractAvIdFromMarkdown(row.markdown || '') === avID) {
+				return row.id;
+			}
+		}
+		throw new Error(`No database block found for AV ID ${avID}`);
+	}
+
 	/** Lists all database (AttributeView) blocks across the workspace. */
 	async listDatabaseBlocks(): Promise<DatabaseBlockLocator[]> {
 		const rows = (await this.sqlQuery(

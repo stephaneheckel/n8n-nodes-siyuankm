@@ -253,6 +253,60 @@ async function main() {
 			assert(msg.includes('Nope'), 'error message names the bad column', msg);
 		}
 		assert(threw, 'threw on unknown column');
+
+		// -------------------------------------------------------------------
+		// Issue #14a — addRow with blockID omitted auto-resolves from avID
+		// -------------------------------------------------------------------
+		console.log('\n→ #14a: addRow with databaseBlockId blank auto-resolves');
+		const row5 = (await handleDatabaseOperation(
+			client,
+			'addRow',
+			makeCtx({
+				avId,
+				databaseBlockId: '',
+				primaryKeyContent: 'Row Five',
+				addRowMode: 'simple',
+			}) as any,
+			0,
+		)) as Record<string, unknown>;
+		assert(row5.databaseBlockId === dbBlockId, 'resolved blockID matches the original', row5);
+		assert(typeof row5.rowID === 'string', 'rowID returned on auto-resolve path', row5);
+
+		// -------------------------------------------------------------------
+		// Issue #14b — Get filter with array value applies OR semantics
+		// -------------------------------------------------------------------
+		console.log('\n→ #14b: get with array-value filter (Title in [Alpha, Beta])');
+		const orFiltered = (await handleDatabaseOperation(
+			client,
+			'get',
+			makeCtx({
+				avId,
+				getOutputMode: 'split',
+				getFilter: JSON.stringify({ Title: ['Alpha', 'Beta'] }),
+			}) as any,
+			0,
+		)) as Array<Record<string, unknown>>;
+		assert(orFiltered.length === 2, 'two rows match OR filter', orFiltered.length);
+		const titles = orFiltered.map((r) => r.Title).sort();
+		assert(
+			JSON.stringify(titles) === JSON.stringify(['Alpha', 'Beta']),
+			'returned Alpha and Beta',
+			titles,
+		);
+
+		console.log('\n→ #14b: mixed AND + OR filter ({Title:[Alpha,Beta], Done:true})');
+		const mixed = (await handleDatabaseOperation(
+			client,
+			'get',
+			makeCtx({
+				avId,
+				getOutputMode: 'split',
+				getFilter: JSON.stringify({ Title: ['Alpha', 'Beta'], Done: true }),
+			}) as any,
+			0,
+		)) as Array<Record<string, unknown>>;
+		assert(mixed.length === 1, 'one row matches mixed AND+OR', mixed.length);
+		assert(mixed[0].Title === 'Alpha', 'mixed AND+OR returns the Done row only', mixed[0]);
 	} finally {
 		console.log(`\n→ cleanup: removing notebook ${notebookId}`);
 		try {

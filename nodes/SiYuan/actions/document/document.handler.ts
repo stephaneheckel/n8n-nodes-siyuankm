@@ -12,7 +12,8 @@ export async function handleDocumentOperation(
 			const notebookId = ctx.getNodeParameter('notebookId', itemIndex) as string;
 			const docPath = ctx.getNodeParameter('docPath', itemIndex) as string;
 			const markdown = ctx.getNodeParameter('markdownContent', itemIndex) as string;
-			return client.createDocWithMd(notebookId, docPath, markdown);
+			const id = await client.createDocWithMd(notebookId, docPath, markdown);
+			return { id, notebookId, path: docPath, found: Boolean(id) };
 		}
 		case 'rename': {
 			const docId = ctx.getNodeParameter('docId', itemIndex) as string;
@@ -62,7 +63,12 @@ export async function handleDocumentOperation(
 		}
 		case 'exportMd': {
 			const docId = ctx.getNodeParameter('docId', itemIndex) as string;
-			return client.exportDocMd(docId);
+			const exported = await client.exportDocMd(docId);
+			return {
+				id: docId,
+				content: exported?.content ?? '',
+				hPath: exported?.hPath ?? '',
+			};
 		}
 		case 'getStoragePath': {
 			const docId = ctx.getNodeParameter('docId', itemIndex) as string;

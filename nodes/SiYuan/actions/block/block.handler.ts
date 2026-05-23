@@ -85,7 +85,8 @@ export async function handleBlockOperation(
 		}
 		case 'getContentMd': {
 			const blockId = ctx.getNodeParameter('blockId', itemIndex) as string;
-			return client.getBlockContentMd(blockId);
+			const content = await client.getBlockContentMd(blockId);
+			return { id: blockId, content: content ?? '' };
 		}
 		default:
 			throw new Error(`Unsupported block operation: ${operation}`);

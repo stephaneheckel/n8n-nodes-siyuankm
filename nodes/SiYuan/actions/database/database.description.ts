@@ -102,9 +102,10 @@ export const databaseFields: INodeProperties[] = [
 		displayName: 'Database Block ID',
 		name: 'databaseBlockId',
 		type: 'string',
-		required: true,
+		required: false,
 		default: '',
-		description: 'The block ID of the database (the editor block hosting the AttributeView)',
+		description:
+			'Optional — leave blank to auto-resolve from the AV ID. Set explicitly to skip the lookup (one SQL round-trip) if you already have the hosting block ID.',
 		displayOptions: { show: { resource: ['database'], operation: ['addRow'] } },
 	},
 	{
@@ -140,21 +141,23 @@ export const databaseFields: INodeProperties[] = [
 		displayName: 'Fields Mode',
 		name: 'fieldsMode',
 		type: 'options',
-		default: 'byKeyId',
+		default: 'byColumnName',
 		description: 'How to identify the columns to set',
 		displayOptions: {
 			show: { resource: ['database'], operation: ['addRow'], addRowMode: ['fields'] },
 		},
 		options: [
 			{
-				name: 'By Column (Key) ID',
-				value: 'byKeyId',
-				description: 'Repeat field with explicit keyID + value entries',
-			},
-			{
 				name: 'By Column Name (JSON)',
 				value: 'byColumnName',
-				description: 'JSON object mapping column display names to values',
+				description:
+					'JSON object mapping column display names to values — recommended for most use cases',
+			},
+			{
+				name: 'By Column (Key) ID',
+				value: 'byKeyId',
+				description:
+					'Repeat field with explicit keyID + value entries — use when you have the internal column IDs',
 			},
 		],
 	},
@@ -239,11 +242,11 @@ export const databaseFields: INodeProperties[] = [
 		displayName: 'Filter (JSON)',
 		name: 'getFilter',
 		type: 'string',
-		typeOptions: { rows: 3 },
+		typeOptions: { rows: 4 },
 		default: '',
-		placeholder: '{ "Done": true }',
+		placeholder: '{ "Status": ["Done", "WIP"] }',
 		description:
-			'Optional JSON object — only rows where every field matches will be returned. Applied client-side after fetch.',
+			'Optional JSON object — applied client-side after fetch. Scalar values match by equality and combine with AND across keys. Array values match any-of (OR) within that column. Examples: {"Status":"Done","Owner":"Mike"} (AND); {"Status":["Done","WIP"]} (OR on one column); {"Status":["Done","WIP"],"Owner":"Mike"} (mixed).',
 		displayOptions: { show: { resource: ['database'], operation: ['get'] } },
 	},
 	{
