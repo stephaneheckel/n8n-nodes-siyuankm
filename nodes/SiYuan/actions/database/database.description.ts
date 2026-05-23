@@ -102,7 +102,6 @@ export const databaseFields: INodeProperties[] = [
 		displayName: 'Database Block ID',
 		name: 'databaseBlockId',
 		type: 'string',
-		required: false,
 		default: '',
 		description:
 			'Optional — leave blank to auto-resolve from the AV ID. Set explicitly to skip the lookup (one SQL round-trip) if you already have the hosting block ID.',
