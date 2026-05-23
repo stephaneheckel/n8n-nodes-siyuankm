@@ -19,11 +19,27 @@ function flattenRow(
 	return flat;
 }
 
-/** Apply a simple equality filter (top-level field === value) to a list of flat rows. */
+/**
+ * Apply an equality filter to a list of flat rows.
+ *
+ * - Scalar value: equality match (AND across keys).
+ * - Array value: any-of match for that column (OR within the column).
+ *
+ * Examples:
+ *   {"Status":"Done","Owner":"Mike"}        // AND
+ *   {"Status":["Done","WIP"]}               // OR on one column
+ *   {"Status":["Done","WIP"],"Owner":"Mike"} // mixed
+ */
 function applyFilter(rows: Record<string, unknown>[], filter: Record<string, unknown>): Record<string, unknown>[] {
 	const keys = Object.keys(filter);
 	if (keys.length === 0) return rows;
-	return rows.filter((r) => keys.every((k) => r[k] === filter[k]));
+	return rows.filter((row) =>
+		keys.every((k) => {
+			const expected = filter[k];
+			if (Array.isArray(expected)) return expected.some((v) => row[k] === v);
+			return row[k] === expected;
+		}),
+	);
 }
 
 export async function handleDatabaseOperation(
@@ -117,7 +133,10 @@ export async function handleDatabaseOperation(
 
 		case 'addRow': {
 			const avId = ctx.getNodeParameter('avId', itemIndex) as string;
-			const databaseBlockId = ctx.getNodeParameter('databaseBlockId', itemIndex) as string;
+			const databaseBlockIdRaw = ctx.getNodeParameter('databaseBlockId', itemIndex, '') as string;
+			const databaseBlockId = (databaseBlockIdRaw || '').trim().length > 0
+				? databaseBlockIdRaw.trim()
+				: await client.getBlockIdByAvId(avId);
 			const primaryContent = ctx.getNodeParameter('primaryKeyContent', itemIndex, '') as string;
 			const addRowMode = ctx.getNodeParameter('addRowMode', itemIndex, 'simple') as
 				| 'simple'
@@ -127,7 +146,7 @@ export async function handleDatabaseOperation(
 
 			let fieldsSet = 0;
 			if (addRowMode === 'fields') {
-				const fieldsMode = ctx.getNodeParameter('fieldsMode', itemIndex, 'byKeyId') as
+				const fieldsMode = ctx.getNodeParameter('fieldsMode', itemIndex, 'byColumnName') as
 					| 'byKeyId'
 					| 'byColumnName';
 
@@ -175,7 +194,13 @@ export async function handleDatabaseOperation(
 				}
 			}
 
-			return { avID: avId, rowID, primaryKeyContent: primaryContent, fieldsSet };
+			return {
+				avID: avId,
+				databaseBlockId,
+				rowID,
+				primaryKeyContent: primaryContent,
+				fieldsSet,
+			};
 		}
 
 		case 'removeRow': {
