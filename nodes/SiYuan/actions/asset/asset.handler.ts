@@ -14,7 +14,8 @@ export async function handleAssetOperation(
 		}
 		case 'getFile': {
 			const path = ctx.getNodeParameter('filePath', itemIndex) as string;
-			return client.getFile(path);
+			const content = await client.getFile(path);
+			return { path, content: content ?? '' };
 		}
 		case 'putFile': {
 			const path = ctx.getNodeParameter('filePath', itemIndex) as string;

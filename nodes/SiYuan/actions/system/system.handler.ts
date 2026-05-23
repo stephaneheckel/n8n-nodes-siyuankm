@@ -28,7 +28,8 @@ export async function handleSystemOperation(
 		}
 		case 'renderSprig': {
 			const template = ctx.getNodeParameter('sprigTemplate', itemIndex) as string;
-			return client.renderSprig(template);
+			const result = await client.renderSprig(template);
+			return { template, result: result ?? '' };
 		}
 		case 'exportResources': {
 			const pathsStr = ctx.getNodeParameter('exportPaths', itemIndex) as string;
