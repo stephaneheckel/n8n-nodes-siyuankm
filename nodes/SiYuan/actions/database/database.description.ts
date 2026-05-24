@@ -61,6 +61,12 @@ export const databaseOperations: INodeProperties = {
 			description: 'Set the value of a cell in a database row',
 			action: 'Set a cell value in a database',
 		},
+		{
+			name: 'Update Row',
+			value: 'updateRow',
+			description: 'Update multiple cell values in an existing row in one operation',
+			action: 'Update a row in a database',
+		},
 	],
 	default: 'list',
 };
@@ -90,6 +96,7 @@ export const databaseFields: INodeProperties[] = [
 					'get',
 					'getSchema',
 					'addRow',
+					'updateRow',
 					'removeRow',
 					'addColumn',
 					'removeColumn',
@@ -116,47 +123,71 @@ export const databaseFields: INodeProperties[] = [
 		displayOptions: { show: { resource: ['database'], operation: ['addRow'] } },
 	},
 	{
-		displayName: 'Add Row Mode',
-		name: 'addRowMode',
-		type: 'options',
-		default: 'simple',
-		description:
-			'Whether to create the row blank (simple) or set additional column values at the same time (fields)',
-		displayOptions: { show: { resource: ['database'], operation: ['addRow'] } },
-		options: [
-			{
-				name: 'Simple (Primary Key Only)',
-				value: 'simple',
-				description: 'Create a blank row with only the primary key set',
-			},
-			{
-				name: 'With Fields',
-				value: 'fields',
-				description: 'Set additional column values during creation',
-			},
-		],
-	},
-	{
 		displayName: 'Fields Mode',
 		name: 'fieldsMode',
 		type: 'options',
-		default: 'byColumnName',
-		description: 'How to identify the columns to set',
+		default: 'byNameAndValue',
+		description: 'How to identify the columns to set. Leave the chosen mode\'s collection empty to create or keep a row without setting any fields.',
 		displayOptions: {
-			show: { resource: ['database'], operation: ['addRow'], addRowMode: ['fields'] },
+			show: { resource: ['database'], operation: ['addRow', 'updateRow'] },
 		},
 		options: [
+			{
+				name: 'By Column Name & Value (Collection)',
+				value: 'byNameAndValue',
+				description:
+					'Per-row UI — pick a column name and type the value as a plain string. Recommended for most workflows; avoids JSON quoting concerns when using n8n expressions.',
+			},
 			{
 				name: 'By Column Name (JSON)',
 				value: 'byColumnName',
 				description:
-					'JSON object mapping column display names to values — recommended for most use cases',
+					'JSON object mapping column display names to values. Useful when computing the payload dynamically (e.g. from a Code node).',
 			},
 			{
 				name: 'By Column (Key) ID',
 				value: 'byKeyId',
 				description:
-					'Repeat field with explicit keyID + value entries — use when you have the internal column IDs',
+					'Repeat field with explicit keyID + value entries — use when you already have the internal column IDs',
+			},
+		],
+	},
+	{
+		displayName: 'Fields',
+		name: 'fieldsByNameAndValue',
+		type: 'fixedCollection',
+		typeOptions: { multipleValues: true },
+		default: {},
+		description:
+			'Column-name + value pairs. The value is a plain string; n8n expressions work directly here without needing JSON-style quoting. Booleans/numbers/dates are coerced based on the column type.',
+		displayOptions: {
+			show: {
+				resource: ['database'],
+				operation: ['addRow', 'updateRow'],
+				fieldsMode: ['byNameAndValue'],
+			},
+		},
+		options: [
+			{
+				name: 'field',
+				displayName: 'Field',
+				values: [
+					{
+						displayName: 'Column Name',
+						name: 'columnName',
+						type: 'string',
+						default: '',
+						description: 'The display name of the column to set',
+					},
+					{
+						displayName: 'Value',
+						name: 'value',
+						type: 'string',
+						default: '',
+						description:
+							'Value for the cell. n8n expressions like {{ $JSON.x }} render here without needing outer quotes.',
+					},
+				],
 			},
 		],
 	},
@@ -166,12 +197,11 @@ export const databaseFields: INodeProperties[] = [
 		type: 'fixedCollection',
 		typeOptions: { multipleValues: true },
 		default: {},
-		description: 'Field/value pairs to set on the new row',
+		description: 'Field/value pairs to set on the row, keyed by internal column ID',
 		displayOptions: {
 			show: {
 				resource: ['database'],
-				operation: ['addRow'],
-				addRowMode: ['fields'],
+				operation: ['addRow', 'updateRow'],
 				fieldsMode: ['byKeyId'],
 			},
 		},
@@ -206,12 +236,12 @@ export const databaseFields: INodeProperties[] = [
 		typeOptions: { rows: 4 },
 		default: '',
 		placeholder: '{ "Title": "Hello", "Done": true }',
-		description: 'JSON object mapping column display names to values',
+		description:
+			'JSON object mapping column display names to values. Note: n8n expressions still need outer quotes for string columns — switch to "By Column Name & Value (Collection)" to skip that concern.',
 		displayOptions: {
 			show: {
 				resource: ['database'],
-				operation: ['addRow'],
-				addRowMode: ['fields'],
+				operation: ['addRow', 'updateRow'],
 				fieldsMode: ['byColumnName'],
 			},
 		},
@@ -255,7 +285,7 @@ export const databaseFields: INodeProperties[] = [
 		required: true,
 		default: '',
 		description: 'The ID of the row to operate on',
-		displayOptions: { show: { resource: ['database'], operation: ['removeRow', 'setCell'] } },
+		displayOptions: { show: { resource: ['database'], operation: ['removeRow', 'setCell', 'updateRow'] } },
 	},
 	{
 		displayName: 'Column (Key) ID',
