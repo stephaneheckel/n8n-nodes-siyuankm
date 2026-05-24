@@ -42,6 +42,106 @@ function applyFilter(rows: Record<string, unknown>[], filter: Record<string, unk
 	);
 }
 
+type FieldsMode = 'byNameAndValue' | 'byColumnName' | 'byKeyId';
+
+/**
+ * Resolve a list of column-name + value pairs into key-ID + value pairs by
+ * looking up the AV schema once. Throws with a helpful message when a name
+ * doesn't exist so users learn the correct spelling.
+ */
+async function resolvePairsByName(
+	client: SiYuanClient,
+	avId: string,
+	rows: Array<{ columnName: string; value: unknown }>,
+): Promise<Array<{ keyId: string; value: unknown }>> {
+	if (rows.length === 0) return [];
+	const view = await client.renderDatabase(avId);
+	const byName = new Map(view.columns.map((c) => [c.name, c.id]));
+	return rows.map((r) => {
+		const keyId = byName.get(r.columnName);
+		if (!keyId) {
+			throw new Error(
+				`Column "${r.columnName}" not found in database. Existing columns: ${[...byName.keys()].join(', ')}`,
+			);
+		}
+		return { keyId, value: r.value };
+	});
+}
+
+/**
+ * Read the user's field input for the selected mode and resolve everything to
+ * `{ keyId, value }` pairs ready for setDatabaseCell.
+ *
+ * - `byNameAndValue` — fixedCollection of {columnName,value} rows. The
+ *   recommended default; sidesteps JSON quoting entirely so n8n expressions
+ *   work in plain string fields (issue #16).
+ * - `byColumnName` — JSON object {"Name": value, ...}. Useful for users who
+ *   compute the payload in a Code/Function node.
+ * - `byKeyId` — fixedCollection of {keyId,value} rows. Power-user mode.
+ */
+async function collectFieldPairs(
+	client: SiYuanClient,
+	ctx: IExecuteFunctions,
+	itemIndex: number,
+	avId: string,
+	fieldsMode: FieldsMode,
+): Promise<Array<{ keyId: string; value: unknown }>> {
+	if (fieldsMode === 'byKeyId') {
+		const raw = ctx.getNodeParameter(
+			'fieldsByKeyId.field',
+			itemIndex,
+			[],
+		) as Array<{ keyId: string; value: string }>;
+		return raw
+			.filter((r) => r && r.keyId)
+			.map((r) => ({ keyId: r.keyId, value: r.value }));
+	}
+
+	if (fieldsMode === 'byNameAndValue') {
+		const raw = ctx.getNodeParameter(
+			'fieldsByNameAndValue.field',
+			itemIndex,
+			[],
+		) as Array<{ columnName: string; value: string }>;
+		const rows = raw
+			.filter((r) => r && r.columnName)
+			.map((r) => ({ columnName: r.columnName, value: r.value }));
+		return resolvePairsByName(client, avId, rows);
+	}
+
+	// byColumnName — JSON object input.
+	const jsonRaw = ctx.getNodeParameter('fieldsByColumnName', itemIndex, '') as string;
+	if (!jsonRaw || jsonRaw.trim().length === 0) return [];
+	let parsed: Record<string, unknown>;
+	try {
+		parsed = JSON.parse(jsonRaw);
+	} catch (e) {
+		throw new Error(
+			`Invalid Fields JSON: ${(e as Error).message}. Expected {"Column Name": value}. ` +
+				`Tip: in n8n template syntax, string values still need outer quotes — e.g. "Name":"{{ $json.name }}". ` +
+				`Switch Fields Mode to "By Column Name & Value (Collection)" to skip the quoting concern entirely.`,
+		);
+	}
+	if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+		throw new Error('Fields JSON must be an object {"Column Name": value}.');
+	}
+	const rows = Object.entries(parsed).map(([columnName, value]) => ({ columnName, value }));
+	return resolvePairsByName(client, avId, rows);
+}
+
+/** Apply a list of {keyId, value} pairs as cell updates. Returns the number applied. */
+async function applyCellUpdates(
+	client: SiYuanClient,
+	avId: string,
+	rowID: string,
+	pairs: Array<{ keyId: string; value: unknown }>,
+): Promise<number> {
+	for (const { keyId, value } of pairs) {
+		await client.setDatabaseCell(avId, rowID, keyId, value);
+	}
+	return pairs.length;
+}
+
 export async function handleDatabaseOperation(
 	client: SiYuanClient,
 	operation: string,
@@ -138,61 +238,12 @@ export async function handleDatabaseOperation(
 				? databaseBlockIdRaw.trim()
 				: await client.getBlockIdByAvId(avId);
 			const primaryContent = ctx.getNodeParameter('primaryKeyContent', itemIndex, '') as string;
-			const addRowMode = ctx.getNodeParameter('addRowMode', itemIndex, 'simple') as
-				| 'simple'
-				| 'fields';
 
 			const { rowID } = await client.addDatabaseRow(avId, databaseBlockId, primaryContent);
 
-			let fieldsSet = 0;
-			if (addRowMode === 'fields') {
-				const fieldsMode = ctx.getNodeParameter('fieldsMode', itemIndex, 'byColumnName') as
-					| 'byKeyId'
-					| 'byColumnName';
-
-				const pairs: Array<{ keyId: string; value: unknown }> = [];
-
-				if (fieldsMode === 'byKeyId') {
-					const raw = ctx.getNodeParameter(
-						'fieldsByKeyId.field',
-						itemIndex,
-						[],
-					) as Array<{ keyId: string; value: string }>;
-					for (const r of raw) {
-						if (r.keyId) pairs.push({ keyId: r.keyId, value: r.value });
-					}
-				} else {
-					const jsonRaw = ctx.getNodeParameter('fieldsByColumnName', itemIndex, '') as string;
-					if (jsonRaw && jsonRaw.trim().length > 0) {
-						let parsed: Record<string, unknown>;
-						try {
-							parsed = JSON.parse(jsonRaw);
-						} catch (e) {
-							throw new Error(
-								`Invalid Fields JSON: ${(e as Error).message}. Expected {"Column Name": value}.`,
-							);
-						}
-						if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-							throw new Error('Fields JSON must be an object {"Column Name": value}.');
-						}
-						// Resolve column NAMES → keyIDs (one renderDatabase call).
-						const view = await client.renderDatabase(avId);
-						const byName = new Map(view.columns.map((c) => [c.name, c.id]));
-						for (const [name, value] of Object.entries(parsed)) {
-							const keyId = byName.get(name);
-							if (!keyId) {
-								throw new Error(`Column "${name}" not found in database. Existing columns: ${[...byName.keys()].join(', ')}`);
-							}
-							pairs.push({ keyId, value });
-						}
-					}
-				}
-
-				for (const { keyId, value } of pairs) {
-					await client.setDatabaseCell(avId, rowID, keyId, value);
-					fieldsSet += 1;
-				}
-			}
+			const fieldsMode = ctx.getNodeParameter('fieldsMode', itemIndex, 'byNameAndValue') as FieldsMode;
+			const pairs = await collectFieldPairs(client, ctx, itemIndex, avId, fieldsMode);
+			const fieldsSet = await applyCellUpdates(client, avId, rowID, pairs);
 
 			return {
 				avID: avId,
@@ -201,6 +252,15 @@ export async function handleDatabaseOperation(
 				primaryKeyContent: primaryContent,
 				fieldsSet,
 			};
+		}
+
+		case 'updateRow': {
+			const avId = ctx.getNodeParameter('avId', itemIndex) as string;
+			const rowId = ctx.getNodeParameter('rowId', itemIndex) as string;
+			const fieldsMode = ctx.getNodeParameter('fieldsMode', itemIndex, 'byNameAndValue') as FieldsMode;
+			const pairs = await collectFieldPairs(client, ctx, itemIndex, avId, fieldsMode);
+			const fieldsSet = await applyCellUpdates(client, avId, rowId, pairs);
+			return { avID: avId, rowID: rowId, fieldsSet };
 		}
 
 		case 'removeRow': {
