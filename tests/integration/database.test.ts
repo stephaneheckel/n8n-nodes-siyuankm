@@ -307,6 +307,139 @@ async function main() {
 		)) as Array<Record<string, unknown>>;
 		assert(mixed.length === 1, 'one row matches mixed AND+OR', mixed.length);
 		assert(mixed[0].Title === 'Alpha', 'mixed AND+OR returns the Done row only', mixed[0]);
+
+		// -------------------------------------------------------------------
+		// Issue #16 — Add Row with new "By Column Name & Value" collection mode
+		// -------------------------------------------------------------------
+		console.log('\n→ #16: addRow with byNameAndValue collection (Sigma row)');
+		const rowSigma = (await handleDatabaseOperation(
+			client,
+			'addRow',
+			makeCtx({
+				avId,
+				databaseBlockId: dbBlockId,
+				primaryKeyContent: 'Row Sigma',
+				fieldsMode: 'byNameAndValue',
+				'fieldsByNameAndValue.field': [
+					{ columnName: 'Title', value: 'Sigma' },
+					{ columnName: 'Count', value: '15' },
+					{ columnName: 'Done', value: 'true' },
+				],
+			}) as any,
+			0,
+		)) as Record<string, unknown>;
+		assert(rowSigma.fieldsSet === 3, 'fieldsSet === 3 (byNameAndValue)', rowSigma);
+		assert(typeof rowSigma.rowID === 'string', 'rowID present (byNameAndValue)', rowSigma);
+
+		const getSigma = (await handleDatabaseOperation(
+			client,
+			'get',
+			makeCtx({ avId, getOutputMode: 'split', getFilter: JSON.stringify({ Title: 'Sigma' }) }) as any,
+			0,
+		)) as Array<Record<string, unknown>>;
+		assert(getSigma.length === 1, 'find Sigma row via get filter', getSigma);
+		assert(getSigma[0].Count === 15, 'Count coerced to number 15', getSigma[0]);
+		assert(getSigma[0].Done === true, 'Done coerced to boolean true', getSigma[0]);
+
+		// -------------------------------------------------------------------
+		// Issue #17 — updateRow with all three field modes
+		// -------------------------------------------------------------------
+		const sigmaRowID = rowSigma.rowID as string;
+
+		console.log('\n→ #17: updateRow with byNameAndValue (Count→99, Done→false)');
+		const upd1 = (await handleDatabaseOperation(
+			client,
+			'updateRow',
+			makeCtx({
+				avId,
+				rowId: sigmaRowID,
+				fieldsMode: 'byNameAndValue',
+				'fieldsByNameAndValue.field': [
+					{ columnName: 'Count', value: '99' },
+					{ columnName: 'Done', value: 'false' },
+				],
+			}) as any,
+			0,
+		)) as Record<string, unknown>;
+		assert(upd1.fieldsSet === 2, 'fieldsSet === 2 (byNameAndValue update)', upd1);
+		assert(upd1.rowID === sigmaRowID, 'updateRow echoes the rowID', upd1);
+
+		const verifyUpd1 = (await handleDatabaseOperation(
+			client,
+			'get',
+			makeCtx({ avId, getOutputMode: 'split', getFilter: JSON.stringify({ Title: 'Sigma' }) }) as any,
+			0,
+		)) as Array<Record<string, unknown>>;
+		assert(verifyUpd1[0].Count === 99, 'Count is now 99 after update', verifyUpd1[0]);
+		assert(verifyUpd1[0].Done === false, 'Done is now false after update', verifyUpd1[0]);
+
+		console.log('\n→ #17: updateRow with byColumnName JSON (Title→"Sigma Prime")');
+		const upd2 = (await handleDatabaseOperation(
+			client,
+			'updateRow',
+			makeCtx({
+				avId,
+				rowId: sigmaRowID,
+				fieldsMode: 'byColumnName',
+				fieldsByColumnName: JSON.stringify({ Title: 'Sigma Prime' }),
+			}) as any,
+			0,
+		)) as Record<string, unknown>;
+		assert(upd2.fieldsSet === 1, 'fieldsSet === 1 (byColumnName update)', upd2);
+
+		const verifyUpd2 = (await handleDatabaseOperation(
+			client,
+			'get',
+			makeCtx({ avId, getOutputMode: 'split', getFilter: JSON.stringify({ Title: 'Sigma Prime' }) }) as any,
+			0,
+		)) as Array<Record<string, unknown>>;
+		assert(verifyUpd2.length === 1, 'found row by new Title after update', verifyUpd2);
+
+		console.log('\n→ #17: updateRow with byKeyId (Count→7)');
+		const upd3 = (await handleDatabaseOperation(
+			client,
+			'updateRow',
+			makeCtx({
+				avId,
+				rowId: sigmaRowID,
+				fieldsMode: 'byKeyId',
+				'fieldsByKeyId.field': [{ keyId: colNum.keyID, value: '7' }],
+			}) as any,
+			0,
+		)) as Record<string, unknown>;
+		assert(upd3.fieldsSet === 1, 'fieldsSet === 1 (byKeyId update)', upd3);
+
+		const verifyUpd3 = (await handleDatabaseOperation(
+			client,
+			'get',
+			makeCtx({ avId, getOutputMode: 'split', getFilter: JSON.stringify({ Title: 'Sigma Prime' }) }) as any,
+			0,
+		)) as Array<Record<string, unknown>>;
+		assert(verifyUpd3[0].Count === 7, 'Count is 7 after byKeyId update', verifyUpd3[0]);
+
+		console.log('\n→ #17: updateRow with unknown column throws clear error');
+		let updThrew = false;
+		try {
+			await handleDatabaseOperation(
+				client,
+				'updateRow',
+				makeCtx({
+					avId,
+					rowId: sigmaRowID,
+					fieldsMode: 'byNameAndValue',
+					'fieldsByNameAndValue.field': [{ columnName: 'NopeColumn', value: 'x' }],
+				}) as any,
+				0,
+			);
+		} catch (e) {
+			updThrew = true;
+			assert(
+				(e as Error).message.includes('NopeColumn'),
+				'error names the missing column',
+				(e as Error).message,
+			);
+		}
+		assert(updThrew, 'threw on unknown column in updateRow');
 	} finally {
 		console.log(`\n→ cleanup: removing notebook ${notebookId}`);
 		try {
