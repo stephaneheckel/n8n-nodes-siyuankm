@@ -153,6 +153,15 @@ export const databaseFields: INodeProperties[] = [
 		],
 	},
 	{
+		displayName: 'Row ID',
+		name: 'rowId',
+		type: 'string',
+		required: true,
+		default: '',
+		description: 'The ID of the row to operate on',
+		displayOptions: { show: { resource: ['database'], operation: ['removeRow', 'setCell', 'updateRow'] } },
+	},
+	{
 		displayName: 'Fields',
 		name: 'fieldsByNameAndValue',
 		type: 'fixedCollection',
@@ -277,15 +286,6 @@ export const databaseFields: INodeProperties[] = [
 		description:
 			'Optional JSON object — applied client-side after fetch. Scalar values match by equality and combine with AND across keys. Array values match any-of (OR) within that column. Examples: {"Status":"Done","Owner":"Mike"} (AND); {"Status":["Done","WIP"]} (OR on one column); {"Status":["Done","WIP"],"Owner":"Mike"} (mixed).',
 		displayOptions: { show: { resource: ['database'], operation: ['get'] } },
-	},
-	{
-		displayName: 'Row ID',
-		name: 'rowId',
-		type: 'string',
-		required: true,
-		default: '',
-		description: 'The ID of the row to operate on',
-		displayOptions: { show: { resource: ['database'], operation: ['removeRow', 'setCell', 'updateRow'] } },
 	},
 	{
 		displayName: 'Column (Key) ID',
