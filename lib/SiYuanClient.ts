@@ -162,75 +162,102 @@ export class SiYuanClient {
 	// Core request handler
 	// ---------------------------------------------------------------------------
 
-	/** Makes a POST request to the SiYuan API and returns the `data` field. */
+	/**
+	 * Makes a POST request to the SiYuan API and returns the `data` field.
+	 *
+	 * Transient "indexing" responses are retried with exponential backoff. Right
+	 * after a notebook is opened, SiYuan is still rebuilding its block index, so
+	 * filetree endpoints (e.g. getPathByID, used by Get Document Tree) reject with
+	 * `{ code: -1, msg: "indexing" }` until the index settles. Retrying here lets
+	 * Open → Get Document Tree succeed without a manual Wait node and adapts to a
+	 * loaded system (see issue #22). The retry is keyed on the message text, NOT on
+	 * `code === -1`, because SiYuan also returns -1 for permanent errors such as
+	 * auth failure — retrying those would mask the real error and waste time.
+	 */
 	private async request<T = unknown>(endpoint: string, payload: object = {}): Promise<T> {
-		try {
-			const response: AxiosResponse<SiYuanResponse<T>> = await this.client.post(endpoint, payload);
-			const body = response.data;
+		const maxAttempts = 10;
+		let delayMs = 200;
 
-			if (body.code !== 0) {
-				const errorMsg = body.msg || 'Unknown error';
-				const suggestion = getSuggestionForError(errorMsg);
-				throw new NodeApiError(
-					null as any,
-					{
-						code: body.code,
-						msg: errorMsg,
-						data: body.data as unknown as JsonValue,
-						endpoint,
-						suggestion,
-						payload: payload as JsonObject,
-					},
-					{
-						message: `SiYuan API Error (${endpoint}): ${errorMsg} (Code: ${body.code}). ${suggestion}`,
-					},
+		for (let attempt = 1; ; attempt++) {
+			try {
+				const response: AxiosResponse<SiYuanResponse<T>> = await this.client.post(
+					endpoint,
+					payload,
 				);
-			}
+				const body = response.data;
 
-			return body.data;
-		} catch (error) {
-			if (error instanceof NodeApiError) {
-				throw error;
-			}
-			if (axios.isAxiosError(error)) {
-				const msg = error.response?.data?.msg || error.message;
-				const code = error.response?.data?.code || error.response?.status || 'NetworkError';
-				let suggestion: string;
+				if (body.code !== 0) {
+					const errorMsg = body.msg || 'Unknown error';
 
-				if (error.code === 'ECONNREFUSED') {
-					suggestion =
-						'SiYuan does not appear to be running. Start SiYuan and verify the API URL in your credentials.';
-				} else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-					suggestion =
-						'The request timed out. Check that SiYuan is running and the API URL is correct.';
-				} else if (error.response?.status === 401 || error.response?.status === 403) {
-					suggestion =
-						'Authentication failed. Check your API token in the SiYuan credential settings.';
-				} else {
-					suggestion = getSuggestionForError(msg);
+					// Transient: SiYuan kernel is still indexing — back off and retry.
+					if (/indexing/i.test(errorMsg) && attempt < maxAttempts) {
+						await new Promise((resolve) => setTimeout(resolve, delayMs));
+						delayMs = Math.min(delayMs * 2, 3000);
+						continue;
+					}
+
+					const suggestion = getSuggestionForError(errorMsg);
+					throw new NodeApiError(
+						null as any,
+						{
+							code: body.code,
+							msg: errorMsg,
+							data: body.data as unknown as JsonValue,
+							endpoint,
+							suggestion,
+							payload: payload as JsonObject,
+						},
+						{
+							message: `SiYuan API Error (${endpoint}): ${errorMsg} (Code: ${body.code}). ${suggestion}`,
+						},
+					);
 				}
 
+				return body.data;
+			} catch (error) {
+				if (error instanceof NodeApiError) {
+					throw error;
+				}
+				if (axios.isAxiosError(error)) {
+					const msg = error.response?.data?.msg || error.message;
+					const code = error.response?.data?.code || error.response?.status || 'NetworkError';
+					let suggestion: string;
+
+					if (error.code === 'ECONNREFUSED') {
+						suggestion =
+							'SiYuan does not appear to be running. Start SiYuan and verify the API URL in your credentials.';
+					} else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+						suggestion =
+							'The request timed out. Check that SiYuan is running and the API URL is correct.';
+					} else if (error.response?.status === 401 || error.response?.status === 403) {
+						suggestion =
+							'Authentication failed. Check your API token in the SiYuan credential settings.';
+					} else {
+						suggestion = getSuggestionForError(msg);
+					}
+
+					throw new NodeApiError(
+						null as any,
+						{
+							...(error.response?.data || { message: error.message }),
+							endpoint,
+							suggestion,
+						},
+						{
+							message: `SiYuan Request Failed (${endpoint}): ${msg} (Code: ${code}). ${suggestion}`,
+						},
+					);
+				}
+				const errMsg = (error as Error).message;
+				const suggestion = getSuggestionForError(errMsg);
 				throw new NodeApiError(
 					null as any,
+					{ message: errMsg, endpoint, suggestion },
 					{
-						...(error.response?.data || { message: error.message }),
-						endpoint,
-						suggestion,
-					},
-					{
-						message: `SiYuan Request Failed (${endpoint}): ${msg} (Code: ${code}). ${suggestion}`,
+						message: `Unexpected error (${endpoint}): ${errMsg}. ${suggestion}`,
 					},
 				);
 			}
-			const errMsg = (error as Error).message;
-			const suggestion = getSuggestionForError(errMsg);
-			throw new NodeApiError(
-				null as any,
-				{ message: errMsg, endpoint, suggestion },
-				{
-					message: `Unexpected error (${endpoint}): ${errMsg}. ${suggestion}`,
-				},
-			);
 		}
 	}
 

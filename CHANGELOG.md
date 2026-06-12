@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.5] - 2026-06-12
+
+### Fixed
+- **Notebook > Open → Get Document Tree no longer needs a manual "Wait" node.** Right after a notebook is opened, the SiYuan kernel is still rebuilding its block index and filetree calls (e.g. `getPathByID`, used by Get Document Tree) reject with `indexing` (Code: -1). The API client now retries transient "indexing" responses with exponential backoff (up to ~20s), so Open → Get Document Tree succeeds on its own and adapts to a loaded system. The retry is keyed on the message text, not the code, so genuine errors (auth failure, bad IDs) still fail fast. Closes #22.
+
+### Changed
+- **Database > Get — clearer guidance on Output Mode for existence checks.** Field descriptions now explain that **Split** mode emits no item when a filter matches no rows, which silently drops a non-matching input item at batch sizes above 1. For "does this record already exist" lookups inside a loop, use **Single** mode (one item per input, with a `rowCount`) and test `{{ $json.rowCount === 0 }}`. Addresses #20.
+
 ## [2.1.0] - 2026-05-17
 
 ### Added

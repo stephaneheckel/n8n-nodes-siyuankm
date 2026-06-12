@@ -261,18 +261,20 @@ export const databaseFields: INodeProperties[] = [
 		type: 'options',
 		default: 'split',
 		description:
-			'How to shape the output: split returns one item per row with flat column-name keys (recommended); single returns a single item containing the full schema and rows',
+			'How to shape the output: split returns one item per row with flat column-name keys; single returns one item per input with the schema, rows and a rowCount. Use single for existence or lookup checks inside a loop — split emits no item when a filter matches no rows, so a non-matching input is silently dropped (this only becomes visible at batch sizes above 1).',
 		displayOptions: { show: { resource: ['database'], operation: ['get'] } },
 		options: [
 			{
 				name: 'Split (One Item per Row)',
 				value: 'split',
-				description: 'Flat records keyed by column display name. Each row is its own n8n item.',
+				description:
+					'Flat records keyed by column display name, one n8n item per matching row. Emits no item when the filter matches no rows, so do not use it for "does this record exist" checks behind an IF — use Single instead.',
 			},
 			{
 				name: 'Single (Schema + Rows)',
 				value: 'single',
-				description: 'One item containing the database schema and an array of flat rows',
+				description:
+					'One item per input with the schema, an array of flat rows and a rowCount. Best for existence checks — test that rowCount is 0 to branch on "not found".',
 			},
 		],
 	},
@@ -284,7 +286,7 @@ export const databaseFields: INodeProperties[] = [
 		default: '',
 		placeholder: '{ "Status": ["Done", "WIP"] }',
 		description:
-			'Optional JSON object — applied client-side after fetch. Scalar values match by equality and combine with AND across keys. Array values match any-of (OR) within that column. Examples: {"Status":"Done","Owner":"Mike"} (AND); {"Status":["Done","WIP"]} (OR on one column); {"Status":["Done","WIP"],"Owner":"Mike"} (mixed).',
+			'Optional JSON object — applied client-side after fetch. Scalar values match by equality and combine with AND across keys. Array values match any-of (OR) within that column. Examples: {"Status":"Done","Owner":"Mike"} (AND); {"Status":["Done","WIP"]} (OR on one column); {"Status":["Done","WIP"],"Owner":"Mike"} (mixed). For "does this row already exist" checks in a loop, set Output Mode to Single and test that the returned rowCount is 0 — Split mode drops non-matching input items.',
 		displayOptions: { show: { resource: ['database'], operation: ['get'] } },
 	},
 	{
