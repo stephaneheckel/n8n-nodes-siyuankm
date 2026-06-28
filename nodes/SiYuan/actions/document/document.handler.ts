@@ -9,11 +9,12 @@ export async function handleDocumentOperation(
 ): Promise<unknown> {
 	switch (operation) {
 		case 'create': {
-			const notebookId = ctx.getNodeParameter('notebookId', itemIndex) as string;
+			const name = ctx.getNodeParameter('notebookName', itemIndex) as string;
+			const { id: notebookId } = await client.notebookByName(name);
 			const docPath = ctx.getNodeParameter('docPath', itemIndex) as string;
 			const markdown = ctx.getNodeParameter('markdownContent', itemIndex) as string;
 			const id = await client.createDocWithMd(notebookId, docPath, markdown);
-			return { id, notebookId, path: docPath, found: Boolean(id) };
+			return { id, notebookId, notebookName: name, path: docPath, found: Boolean(id) };
 		}
 		case 'rename': {
 			const docId = ctx.getNodeParameter('docId', itemIndex) as string;
@@ -30,11 +31,13 @@ export async function handleDocumentOperation(
 			return client.moveDocsByID([docId], targetParentId);
 		}
 		case 'getIdByPath': {
-			const notebookId = ctx.getNodeParameter('notebookId', itemIndex) as string;
+			const name = ctx.getNodeParameter('notebookName', itemIndex) as string;
+			const { id: notebookId } = await client.notebookByName(name);
 			const docPath = ctx.getNodeParameter('docPath', itemIndex) as string;
 			const ids = (await client.getIDsByHPath(docPath, notebookId)) || [];
 			return {
 				notebookId,
+				notebookName: name,
 				path: docPath,
 				ids,
 				count: ids.length,
@@ -58,7 +61,8 @@ export async function handleDocumentOperation(
 			};
 		}
 		case 'listInNotebook': {
-			const notebookId = ctx.getNodeParameter('notebookId', itemIndex) as string;
+			const name = ctx.getNodeParameter('notebookName', itemIndex) as string;
+			const { id: notebookId } = await client.notebookByName(name);
 			return client.listDocsInNotebook(notebookId);
 		}
 		case 'exportMd': {
@@ -91,7 +95,8 @@ export async function handleDocumentOperation(
 			};
 		}
 		case 'getHPathByPath': {
-			const notebookId = ctx.getNodeParameter('notebookId', itemIndex) as string;
+			const name = ctx.getNodeParameter('notebookName', itemIndex) as string;
+			const { id: notebookId } = await client.notebookByName(name);
 			const storagePath = ctx.getNodeParameter('storagePath', itemIndex) as string;
 			let path: string | null = null;
 			try {
@@ -102,6 +107,7 @@ export async function handleDocumentOperation(
 			}
 			return {
 				notebookId,
+				notebookName: name,
 				storagePath,
 				path,
 				found: path !== null,

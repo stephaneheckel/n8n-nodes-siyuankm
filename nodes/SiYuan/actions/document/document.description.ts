@@ -86,14 +86,15 @@ export const documentOperations: INodeProperties = {
 };
 
 export const documentFields: INodeProperties[] = [
-	// Notebook ID — create, getIdByPath, listInNotebook, getHPathByPath
+	// Notebook Name — create, getIdByPath, listInNotebook, getHPathByPath
 	{
-		displayName: 'Notebook ID',
-		name: 'notebookId',
+		displayName: 'Notebook Name',
+		name: 'notebookName',
 		type: 'string',
 		required: true,
 		default: '',
-		description: 'The unique ID of the notebook',
+		description:
+			'The name of the notebook (case-sensitive). Automatically resolved to its internal ID.',
 		displayOptions: {
 			show: {
 				resource: ['document'],
