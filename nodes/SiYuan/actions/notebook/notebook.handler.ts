@@ -11,6 +11,13 @@ export async function handleNotebookOperation(
 	switch (operation) {
 		case 'create': {
 			const name = ctx.getNodeParameter('notebookName', itemIndex) as string;
+			// Check for duplicate before creating
+			const existing = await client.listNotebooks();
+			if (existing.some((n) => n.name === name)) {
+				throw new Error(
+					`A notebook named "${name}" already exists. Choose a different name or rename the existing one.`,
+				);
+			}
 			return client.createNotebook(name);
 		}
 		case 'list': {
