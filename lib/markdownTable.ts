@@ -89,7 +89,8 @@ export function insertRowIntoMarkdownTable(
 		const insertAfter = tableLineIndices[tableLineIndices.length - 1];
 		lines.splice(insertAfter + 1, 0, newRow);
 	} else {
-		const insertAt = tableLineIndices[1 + rowIndex] ?? tableLineIndices[tableLineIndices.length - 1] + 1;
+		const insertAt =
+			tableLineIndices[1 + rowIndex] ?? tableLineIndices[tableLineIndices.length - 1] + 1;
 		lines.splice(insertAt + 1, 0, newRow);
 	}
 
@@ -106,7 +107,9 @@ export function updateRowInMarkdownTable(
 	const columnNames = info.columns.map((c) => c.name);
 
 	if (rowIndex < 0 || rowIndex >= info.rows.length) {
-		throw new Error(`Row index ${rowIndex} is out of bounds (table has ${info.rows.length} row(s)).`);
+		throw new Error(
+			`Row index ${rowIndex} is out of bounds (table has ${info.rows.length} row(s)).`,
+		);
 	}
 
 	const merged: Record<string, unknown> = { ...info.rows[rowIndex], ...rowData };
@@ -131,7 +134,9 @@ export function deleteRowFromMarkdownTable(kramdown: string, rowIndex: number): 
 	const info = parseMarkdownTable('', kramdown);
 
 	if (rowIndex < 0 || rowIndex >= info.rows.length) {
-		throw new Error(`Row index ${rowIndex} is out of bounds (table has ${info.rows.length} row(s)).`);
+		throw new Error(
+			`Row index ${rowIndex} is out of bounds (table has ${info.rows.length} row(s)).`,
+		);
 	}
 
 	const lines = kramdown.split('\n');

@@ -127,7 +127,8 @@ export const databaseFields: INodeProperties[] = [
 		name: 'fieldsMode',
 		type: 'options',
 		default: 'byNameAndValue',
-		description: 'How to identify the columns to set. Leave the chosen mode\'s collection empty to create or keep a row without setting any fields.',
+		description:
+			"How to identify the columns to set. Leave the chosen mode's collection empty to create or keep a row without setting any fields.",
 		displayOptions: {
 			show: { resource: ['database'], operation: ['addRow', 'updateRow'] },
 		},
@@ -159,7 +160,9 @@ export const databaseFields: INodeProperties[] = [
 		required: true,
 		default: '',
 		description: 'The ID of the row to operate on',
-		displayOptions: { show: { resource: ['database'], operation: ['removeRow', 'setCell', 'updateRow'] } },
+		displayOptions: {
+			show: { resource: ['database'], operation: ['removeRow', 'setCell', 'updateRow'] },
+		},
 	},
 	{
 		displayName: 'Fields',

@@ -4,7 +4,6 @@ import {
 	INodeType,
 	INodeTypeDescription,
 	IPollFunctions,
-	NodeConnectionType,
 } from 'n8n-workflow';
 
 import { SiYuanClient } from '../../lib/SiYuanClient';
@@ -36,7 +35,7 @@ export class SiYuanTrigger implements INodeType {
 		// eslint-disable-next-line n8n-nodes-base/node-class-description-inputs-wrong-regular-node
 		inputs: [],
 		// eslint-disable-next-line n8n-nodes-base/node-class-description-outputs-wrong
-		outputs: [NodeConnectionType.Main],
+		outputs: ['main'],
 		credentials: [{ name: 'siYuanApi', required: true }],
 		properties: [
 			{

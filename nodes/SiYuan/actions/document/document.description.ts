@@ -29,8 +29,7 @@ export const documentOperations: INodeProperties = {
 		{
 			name: 'Get Document Tree',
 			value: 'getTree',
-			description:
-				'Get the tree of child documents (sub-documents) nested under a document',
+			description: 'Get the tree of child documents (sub-documents) nested under a document',
 			action: 'Get document tree',
 		},
 		{

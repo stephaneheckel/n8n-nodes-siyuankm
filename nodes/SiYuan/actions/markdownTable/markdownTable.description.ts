@@ -48,7 +48,8 @@ export const markdownTableFields: INodeProperties[] = [
 		type: 'string',
 		required: true,
 		default: '',
-		description: 'The ID of the block (typically a document) where the new Markdown table will be appended',
+		description:
+			'The ID of the block (typically a document) where the new Markdown table will be appended',
 		displayOptions: { show: { resource: ['markdownTable'], operation: ['create'] } },
 	},
 	{
@@ -126,6 +127,8 @@ export const markdownTableFields: INodeProperties[] = [
 		required: true,
 		default: 0,
 		description: 'Zero-based row index, excluding the header row',
-		displayOptions: { show: { resource: ['markdownTable'], operation: ['updateRow', 'deleteRow'] } },
+		displayOptions: {
+			show: { resource: ['markdownTable'], operation: ['updateRow', 'deleteRow'] },
+		},
 	},
 ];

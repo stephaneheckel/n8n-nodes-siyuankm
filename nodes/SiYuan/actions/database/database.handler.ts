@@ -30,7 +30,10 @@ function flattenRow(
  *   {"Status":["Done","WIP"]}               // OR on one column
  *   {"Status":["Done","WIP"],"Owner":"Mike"} // mixed
  */
-function applyFilter(rows: Record<string, unknown>[], filter: Record<string, unknown>): Record<string, unknown>[] {
+function applyFilter(
+	rows: Record<string, unknown>[],
+	filter: Record<string, unknown>,
+): Record<string, unknown>[] {
 	const keys = Object.keys(filter);
 	if (keys.length === 0) return rows;
 	return rows.filter((row) =>
@@ -87,22 +90,18 @@ async function collectFieldPairs(
 	fieldsMode: FieldsMode,
 ): Promise<Array<{ keyId: string; value: unknown }>> {
 	if (fieldsMode === 'byKeyId') {
-		const raw = ctx.getNodeParameter(
-			'fieldsByKeyId.field',
-			itemIndex,
-			[],
-		) as Array<{ keyId: string; value: string }>;
-		return raw
-			.filter((r) => r && r.keyId)
-			.map((r) => ({ keyId: r.keyId, value: r.value }));
+		const raw = ctx.getNodeParameter('fieldsByKeyId.field', itemIndex, []) as Array<{
+			keyId: string;
+			value: string;
+		}>;
+		return raw.filter((r) => r && r.keyId).map((r) => ({ keyId: r.keyId, value: r.value }));
 	}
 
 	if (fieldsMode === 'byNameAndValue') {
-		const raw = ctx.getNodeParameter(
-			'fieldsByNameAndValue.field',
-			itemIndex,
-			[],
-		) as Array<{ columnName: string; value: string }>;
+		const raw = ctx.getNodeParameter('fieldsByNameAndValue.field', itemIndex, []) as Array<{
+			columnName: string;
+			value: string;
+		}>;
 		const rows = raw
 			.filter((r) => r && r.columnName)
 			.map((r) => ({ columnName: r.columnName, value: r.value }));
@@ -182,8 +181,7 @@ export async function handleDatabaseOperation(
 		case 'get': {
 			const avId = ctx.getNodeParameter('avId', itemIndex) as string;
 			const outputMode = ctx.getNodeParameter('getOutputMode', itemIndex, 'split') as
-				| 'split'
-				| 'single';
+				'split' | 'single';
 			const filterRaw = ctx.getNodeParameter('getFilter', itemIndex, '') as string;
 
 			let filter: Record<string, unknown> = {};
@@ -234,14 +232,19 @@ export async function handleDatabaseOperation(
 		case 'addRow': {
 			const avId = ctx.getNodeParameter('avId', itemIndex) as string;
 			const databaseBlockIdRaw = ctx.getNodeParameter('databaseBlockId', itemIndex, '') as string;
-			const databaseBlockId = (databaseBlockIdRaw || '').trim().length > 0
-				? databaseBlockIdRaw.trim()
-				: await client.getBlockIdByAvId(avId);
+			const databaseBlockId =
+				(databaseBlockIdRaw || '').trim().length > 0
+					? databaseBlockIdRaw.trim()
+					: await client.getBlockIdByAvId(avId);
 			const primaryContent = ctx.getNodeParameter('primaryKeyContent', itemIndex, '') as string;
 
 			const { rowID } = await client.addDatabaseRow(avId, databaseBlockId, primaryContent);
 
-			const fieldsMode = ctx.getNodeParameter('fieldsMode', itemIndex, 'byNameAndValue') as FieldsMode;
+			const fieldsMode = ctx.getNodeParameter(
+				'fieldsMode',
+				itemIndex,
+				'byNameAndValue',
+			) as FieldsMode;
 			const pairs = await collectFieldPairs(client, ctx, itemIndex, avId, fieldsMode);
 			const fieldsSet = await applyCellUpdates(client, avId, rowID, pairs);
 
@@ -257,7 +260,11 @@ export async function handleDatabaseOperation(
 		case 'updateRow': {
 			const avId = ctx.getNodeParameter('avId', itemIndex) as string;
 			const rowId = ctx.getNodeParameter('rowId', itemIndex) as string;
-			const fieldsMode = ctx.getNodeParameter('fieldsMode', itemIndex, 'byNameAndValue') as FieldsMode;
+			const fieldsMode = ctx.getNodeParameter(
+				'fieldsMode',
+				itemIndex,
+				'byNameAndValue',
+			) as FieldsMode;
 			const pairs = await collectFieldPairs(client, ctx, itemIndex, avId, fieldsMode);
 			const fieldsSet = await applyCellUpdates(client, avId, rowId, pairs);
 			return { avID: avId, rowID: rowId, fieldsSet };

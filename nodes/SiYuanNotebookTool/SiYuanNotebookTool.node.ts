@@ -4,7 +4,6 @@ import {
 	INodeExecutionData,
 	INodeType,
 	INodeTypeDescription,
-	NodeConnectionType,
 } from 'n8n-workflow';
 
 import { SiYuanClient } from '../../lib/SiYuanClient';
@@ -15,7 +14,7 @@ export class SiYuanNotebookTool implements INodeType {
 		name: 'siYuanNotebookTool',
 		// eslint-disable-next-line n8n-nodes-base/node-class-description-icon-not-svg
 		icon: 'file:siyuan.svg',
-		group: ['productivity'],
+		group: ['productivity' as any],
 		version: 1,
 		subtitle: '={{$parameter["operation"]}}',
 		description:
@@ -24,9 +23,9 @@ export class SiYuanNotebookTool implements INodeType {
 			name: 'SiYuan Notebook Tool',
 		},
 		// eslint-disable-next-line n8n-nodes-base/node-class-description-inputs-wrong-regular-node
-		inputs: [NodeConnectionType.Main],
+		inputs: ['main'],
 		// eslint-disable-next-line n8n-nodes-base/node-class-description-outputs-wrong
-		outputs: [NodeConnectionType.Main],
+		outputs: ['main'],
 		usableAsTool: true,
 		credentials: [{ name: 'siYuanApi', required: true }],
 		properties: [
@@ -139,8 +138,7 @@ export class SiYuanNotebookTool implements INodeType {
 				}
 
 				const jsonResult = (result == null ? { success: true } : result) as
-					| IDataObject
-					| IDataObject[];
+					IDataObject | IDataObject[];
 				const execData = this.helpers.constructExecutionMetaData(
 					this.helpers.returnJsonArray(jsonResult),
 					{ itemData: { item: i } },
