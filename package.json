@@ -50,7 +50,6 @@
       "dist/nodes/SiYuan/SiYuan.node.js",
       "dist/nodes/SiYuanBlockTool/SiYuanBlockTool.node.js",
       "dist/nodes/SiYuanDocumentTool/SiYuanDocumentTool.node.js",
-      "dist/nodes/SiYuanNotebookTool/SiYuanNotebookTool.node.js",
       "dist/nodes/SiYuanSearchTool/SiYuanSearchTool.node.js",
       "dist/nodes/SiYuanTrigger/SiYuanTrigger.node.js"
     ]
