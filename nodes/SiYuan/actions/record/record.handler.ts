@@ -36,7 +36,12 @@ export async function handleRecordOperation(
 			const name = ctx.getNodeParameter('notebookName', itemIndex) as string;
 			const { id: notebookId } = await client.notebookByName(name);
 			const tableName = ctx.getNodeParameter('tableName', itemIndex) as string;
-			return client.listDocsInTable(notebookId, tableName);
+			const docs = await client.listDocsInTable(notebookId, tableName);
+			return docs.map(({ id, title, updated }) => ({
+				id,
+				record: title,
+				updated,
+			}));
 		}
 		default:
 			throw new Error(`Unsupported record operation: ${operation}`);
