@@ -69,12 +69,13 @@ export class SiYuanNotebookTool implements INodeType {
 				default: 'list',
 			},
 			{
-				displayName: 'Notebook ID',
-				name: 'notebookId',
+				displayName: 'Notebook Name',
+				name: 'notebookName',
 				type: 'string',
 				required: true,
 				default: '',
-				description: 'The unique ID of the notebook',
+				description:
+					'The name of the notebook (case-sensitive). Automatically resolved to its internal ID.',
 				displayOptions: { show: { operation: ['rename', 'remove', 'getConf'] } },
 			},
 			{
@@ -120,18 +121,21 @@ export class SiYuanNotebookTool implements INodeType {
 						break;
 					}
 					case 'rename': {
-						const id = this.getNodeParameter('notebookId', i) as string;
+						const name = this.getNodeParameter('notebookName', i) as string;
+						const { id } = await client.notebookByName(name);
 						const newName = this.getNodeParameter('newName', i) as string;
 						result = await client.renameNotebook(id, newName);
 						break;
 					}
 					case 'remove': {
-						const id = this.getNodeParameter('notebookId', i) as string;
+						const name = this.getNodeParameter('notebookName', i) as string;
+						const { id } = await client.notebookByName(name);
 						result = await client.removeNotebook(id);
 						break;
 					}
 					case 'getConf': {
-						const id = this.getNodeParameter('notebookId', i) as string;
+						const name = this.getNodeParameter('notebookName', i) as string;
+						const { id } = await client.notebookByName(name);
 						result = await client.getNotebookConf(id);
 						break;
 					}

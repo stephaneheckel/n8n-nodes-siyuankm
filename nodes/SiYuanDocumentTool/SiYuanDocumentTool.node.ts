@@ -75,12 +75,13 @@ export class SiYuanDocumentTool implements INodeType {
 				default: 'getContent',
 			},
 			{
-				displayName: 'Notebook ID',
-				name: 'notebookId',
+				displayName: 'Notebook Name',
+				name: 'notebookName',
 				type: 'string',
 				required: true,
 				default: '',
-				description: 'The unique ID of the notebook',
+				description:
+					'The name of the notebook (case-sensitive). Automatically resolved to its internal ID.',
 				displayOptions: { show: { operation: ['create', 'listInNotebook'] } },
 			},
 			{
@@ -128,7 +129,8 @@ export class SiYuanDocumentTool implements INodeType {
 
 				switch (operation) {
 					case 'create': {
-						const notebookId = this.getNodeParameter('notebookId', i) as string;
+						const name = this.getNodeParameter('notebookName', i) as string;
+						const { id: notebookId } = await client.notebookByName(name);
 						const docPath = this.getNodeParameter('docPath', i) as string;
 						const markdown = this.getNodeParameter('markdownContent', i) as string;
 						result = await client.createDocWithMd(notebookId, docPath, markdown);
@@ -150,7 +152,8 @@ export class SiYuanDocumentTool implements INodeType {
 						break;
 					}
 					case 'listInNotebook': {
-						const notebookId = this.getNodeParameter('notebookId', i) as string;
+						const name = this.getNodeParameter('notebookName', i) as string;
+						const { id: notebookId } = await client.notebookByName(name);
 						result = await client.listDocsInNotebook(notebookId);
 						break;
 					}
