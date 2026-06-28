@@ -126,6 +126,16 @@ export const documentFields: INodeProperties[] = [
 		description: 'The Markdown content for the new document',
 		displayOptions: { show: { resource: ['document'], operation: ['create'] } },
 	},
+	// Allow Update — create (overwrite existing document at the same path)
+	{
+		displayName: 'Allow Update',
+		name: 'allowUpdate',
+		type: 'boolean',
+		default: false,
+		description:
+			'Whether to remove and replace an existing document at the same path. When off, duplicate paths cause an error.',
+		displayOptions: { show: { resource: ['document'], operation: ['create'] } },
+	},
 	// Document ID — rename, remove, move, getPathById, exportMd, getContent, getTree, getStoragePath
 	{
 		displayName: 'Document ID',

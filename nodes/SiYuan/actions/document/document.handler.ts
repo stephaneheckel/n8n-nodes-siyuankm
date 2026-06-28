@@ -1,4 +1,4 @@
-import type { IExecuteFunctions } from 'n8n-workflow';
+import { NodeOperationError, type IExecuteFunctions } from 'n8n-workflow';
 import type { SiYuanClient } from '../../../../lib/SiYuanClient';
 
 export async function handleDocumentOperation(
@@ -13,8 +13,31 @@ export async function handleDocumentOperation(
 			const { id: notebookId } = await client.notebookByName(name);
 			const docPath = ctx.getNodeParameter('docPath', itemIndex) as string;
 			const markdown = ctx.getNodeParameter('markdownContent', itemIndex) as string;
+			const allowUpdate = ctx.getNodeParameter('allowUpdate', itemIndex, false) as boolean;
+
+			// Check if a document already exists at this path
+			const existingIds = (await client.getIDsByHPath(docPath, notebookId)) || [];
+			if (existingIds.length > 0) {
+				if (!allowUpdate) {
+					throw new NodeOperationError(
+						ctx.getNode(),
+						`A document already exists at path "${docPath}" in notebook "${name}". Enable "Allow Update" to overwrite it.`,
+						{ itemIndex },
+					);
+				}
+				// Remove existing document and recreate with new content
+				await client.removeDocByID(existingIds[0]);
+			}
+
 			const id = await client.createDocWithMd(notebookId, docPath, markdown);
-			return { id, notebookId, notebookName: name, path: docPath, found: Boolean(id) };
+			return {
+				id,
+				notebookId,
+				notebookName: name,
+				path: docPath,
+				found: Boolean(id),
+				updated: existingIds.length > 0,
+			};
 		}
 		case 'rename': {
 			const docId = ctx.getNodeParameter('docId', itemIndex) as string;
