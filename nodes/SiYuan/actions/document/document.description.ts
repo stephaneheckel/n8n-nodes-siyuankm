@@ -121,9 +121,8 @@ export const documentFields: INodeProperties[] = [
 		name: 'markdownContent',
 		type: 'string',
 		typeOptions: { rows: 10 },
-		required: true,
 		default: '',
-		description: 'The Markdown content for the new document',
+		description: 'The Markdown content for the new document. Leave empty to create an empty document.',
 		displayOptions: { show: { resource: ['document'], operation: ['create'] } },
 	},
 	// Allow Update — create (overwrite existing document at the same path)
