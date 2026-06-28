@@ -448,6 +448,39 @@ export class SiYuanClient {
 		return documents;
 	}
 
+	/** Lists documents in a table (subdirectory) of a notebook. */
+	async listDocsInTable(notebookId: string, tableName: string): Promise<ListedDocument[]> {
+		const dirPath = `/data/${notebookId}/${tableName.replace(/^\/+|\/+$/g, '')}`;
+		const entries = await this.request<SiYuanDirEntry[]>('/api/file/readDir', { path: dirPath });
+
+		const documents: ListedDocument[] = [];
+		if (entries && Array.isArray(entries)) {
+			for (const entry of entries) {
+				if (!entry.isDir && entry.name.endsWith('.sy')) {
+					const docId = entry.name.replace(/\.sy$/, '');
+					let title = docId;
+					try {
+						const attrs = await this.getBlockAttrs(docId);
+						if (attrs && typeof attrs.title === 'string' && attrs.title) {
+							title = attrs.title;
+						}
+					} catch {
+						// Continue with ID as title
+					}
+					documents.push({
+						id: docId,
+						name: entry.name,
+						title,
+						updated: entry.updated,
+						isDir: entry.isDir,
+						isSymlink: entry.isSymlink,
+					});
+				}
+			}
+		}
+		return documents;
+	}
+
 	/**
 	 * Returns the internal storage path + notebook for a document by its ID.
 	 * SiYuan kernel returns an object — earlier versions of this client mistyped it as a string,

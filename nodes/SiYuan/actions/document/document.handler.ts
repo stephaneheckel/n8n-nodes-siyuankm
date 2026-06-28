@@ -43,7 +43,7 @@ export async function handleDocumentOperation(
 			const name = ctx.getNodeParameter('notebookName', itemIndex) as string;
 			const { id: notebookId } = await client.notebookByName(name);
 			const tableName = ctx.getNodeParameter('tableName', itemIndex) as string;
-			const docPath = `/${tableName}`;
+			const docPath = `/${tableName.replace(/^\/+|\/+$/g, '')}`;
 			const allowUpdate = ctx.getNodeParameter('allowUpdate', itemIndex, false) as boolean;
 
 			const existingIds = (await client.getIDsByHPath(docPath, notebookId)) || [];
@@ -67,7 +67,7 @@ export async function handleDocumentOperation(
 			const tableName = ctx.getNodeParameter('tableName', itemIndex) as string;
 			const recordKey = ctx.getNodeParameter('recordKey', itemIndex) as string;
 			const value = ctx.getNodeParameter('value', itemIndex, '') as string;
-			const docPath = `/${tableName}/${recordKey}`;
+			const docPath = `/${tableName.replace(/^\/+|\/+$/g, '')}/${recordKey.replace(/^\/+|\/+$/g, '')}`;
 			const allowUpdate = ctx.getNodeParameter('allowUpdate', itemIndex, false) as boolean;
 
 			const existingIds = (await client.getIDsByHPath(docPath, notebookId)) || [];
@@ -128,6 +128,12 @@ export async function handleDocumentOperation(
 			const name = ctx.getNodeParameter('notebookName', itemIndex) as string;
 			const { id: notebookId } = await client.notebookByName(name);
 			return client.listDocsInNotebook(notebookId);
+		}
+		case 'listInTable': {
+			const name = ctx.getNodeParameter('notebookName', itemIndex) as string;
+			const { id: notebookId } = await client.notebookByName(name);
+			const tableName = ctx.getNodeParameter('tableName', itemIndex) as string;
+			return client.listDocsInTable(notebookId, tableName.replace(/^\/+|\/+$/g, ''));
 		}
 		case 'exportMd': {
 			const docId = ctx.getNodeParameter('docId', itemIndex) as string;

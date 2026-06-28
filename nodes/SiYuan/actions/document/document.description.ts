@@ -76,6 +76,12 @@ export const documentOperations: INodeProperties = {
 			action: 'List documents in a notebook',
 		},
 		{
+			name: 'List in Table',
+			value: 'listInTable',
+			description: 'List all records (sub-documents) inside a table directory',
+			action: 'List records in a table',
+		},
+		{
 			name: 'Remove',
 			value: 'remove',
 			description: 'Permanently delete a document by its ID',
@@ -110,6 +116,7 @@ export const documentFields: INodeProperties[] = [
 					'createRecord',
 					'getIdByPath',
 					'listInNotebook',
+					'listInTable',
 					'getHPathByPath',
 				],
 			},
@@ -150,7 +157,7 @@ export const documentFields: INodeProperties[] = [
 		displayOptions: {
 			show: {
 				resource: ['document'],
-				operation: ['createTable', 'createRecord'],
+				operation: ['createTable', 'createRecord', 'listInTable'],
 			},
 		},
 	},
