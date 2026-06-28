@@ -173,11 +173,11 @@ export class SiYuanDocumentTool implements INodeType {
 				returnData.push(...execData);
 			} catch (error) {
 				if (this.continueOnFail()) {
-					const errData = this.helpers.constructExecutionMetaData(
-						this.helpers.returnJsonArray({ error: (error as Error).message }),
-						{ itemData: { item: i } },
-					);
-					returnData.push(...errData);
+					returnData.push({
+						json: { error: (error as Error).message },
+						error: error as NodeOperationError,
+						pairedItem: { item: i },
+					} as INodeExecutionData);
 					continue;
 				}
 				throw error;
