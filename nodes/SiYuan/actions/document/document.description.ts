@@ -64,12 +64,6 @@ export const documentOperations: INodeProperties = {
 			action: 'List documents in a notebook',
 		},
 		{
-			name: 'Move',
-			value: 'move',
-			description: 'Move a document to a different notebook or under another document',
-			action: 'Move a document',
-		},
-		{
 			name: 'Remove',
 			value: 'remove',
 			description: 'Permanently delete a document by its ID',
@@ -149,7 +143,6 @@ export const documentFields: INodeProperties[] = [
 				operation: [
 					'rename',
 					'remove',
-					'move',
 					'getPathById',
 					'exportMd',
 					'getContent',
@@ -168,16 +161,6 @@ export const documentFields: INodeProperties[] = [
 		default: '',
 		description: 'The new title for the document',
 		displayOptions: { show: { resource: ['document'], operation: ['rename'] } },
-	},
-	// Move — target parent ID
-	{
-		displayName: 'Target Parent ID',
-		name: 'targetParentId',
-		type: 'string',
-		required: true,
-		default: '',
-		description: 'The ID of the destination notebook or parent document to move into',
-		displayOptions: { show: { resource: ['document'], operation: ['move'] } },
 	},
 	// getHPathByPath — storage path
 	{

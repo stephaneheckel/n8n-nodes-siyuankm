@@ -48,11 +48,6 @@ export async function handleDocumentOperation(
 			const docId = ctx.getNodeParameter('docId', itemIndex) as string;
 			return client.removeDocByID(docId);
 		}
-		case 'move': {
-			const docId = ctx.getNodeParameter('docId', itemIndex) as string;
-			const targetParentId = ctx.getNodeParameter('targetParentId', itemIndex) as string;
-			return client.moveDocsByID([docId], targetParentId);
-		}
 		case 'getIdByPath': {
 			const name = ctx.getNodeParameter('notebookName', itemIndex) as string;
 			const { id: notebookId } = await client.notebookByName(name);
