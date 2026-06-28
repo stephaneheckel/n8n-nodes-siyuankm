@@ -17,28 +17,34 @@ export async function handleNotebookOperation(
 			return client.listNotebooks();
 		}
 		case 'rename': {
-			const notebookId = ctx.getNodeParameter('notebookId', itemIndex) as string;
+			const name = ctx.getNodeParameter('notebookName', itemIndex) as string;
 			const newName = ctx.getNodeParameter('newName', itemIndex) as string;
+			const { id: notebookId } = await client.notebookByName(name);
 			return client.renameNotebook(notebookId, newName);
 		}
 		case 'remove': {
-			const notebookId = ctx.getNodeParameter('notebookId', itemIndex) as string;
+			const name = ctx.getNodeParameter('notebookName', itemIndex) as string;
+			const { id: notebookId } = await client.notebookByName(name);
 			return client.removeNotebook(notebookId);
 		}
 		case 'open': {
-			const notebookId = ctx.getNodeParameter('notebookId', itemIndex) as string;
+			const name = ctx.getNodeParameter('notebookName', itemIndex) as string;
+			const { id: notebookId } = await client.notebookByName(name);
 			return client.openNotebook(notebookId);
 		}
 		case 'close': {
-			const notebookId = ctx.getNodeParameter('notebookId', itemIndex) as string;
+			const name = ctx.getNodeParameter('notebookName', itemIndex) as string;
+			const { id: notebookId } = await client.notebookByName(name);
 			return client.closeNotebook(notebookId);
 		}
 		case 'getConf': {
-			const notebookId = ctx.getNodeParameter('notebookId', itemIndex) as string;
+			const name = ctx.getNodeParameter('notebookName', itemIndex) as string;
+			const { id: notebookId } = await client.notebookByName(name);
 			return client.getNotebookConf(notebookId);
 		}
 		case 'setConf': {
-			const notebookId = ctx.getNodeParameter('notebookId', itemIndex) as string;
+			const name = ctx.getNodeParameter('notebookName', itemIndex) as string;
+			const { id: notebookId } = await client.notebookByName(name);
 			const confInput = ctx.getNodeParameter('notebookConf', itemIndex);
 			// Parse JSON string if needed (n8n json type may return string or object)
 			const confChanges: Partial<SiYuanNotebookConf> =

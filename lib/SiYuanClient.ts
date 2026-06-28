@@ -66,7 +66,8 @@ function buildCellValue(
 			return { ...base, number: { content: Number.isFinite(num) ? num : 0, isNotEmpty: true } };
 		}
 		case 'checkbox': {
-			const checked = rawValue === true || rawValue === 'true' || rawValue === 1 || rawValue === '1';
+			const checked =
+				rawValue === true || rawValue === 'true' || rawValue === 1 || rawValue === '1';
 			return { ...base, checkbox: { checked } };
 		}
 		case 'url': {
@@ -80,7 +81,10 @@ function buildCellValue(
 		}
 		case 'date': {
 			const asNumber = typeof rawValue === 'number' ? rawValue : Date.parse(String(rawValue));
-			return { ...base, date: { content: Number.isFinite(asNumber) ? asNumber : 0, isNotEmpty: true } };
+			return {
+				...base,
+				date: { content: Number.isFinite(asNumber) ? asNumber : 0, isNotEmpty: true },
+			};
 		}
 		case 'select': {
 			const content = String(rawValue ?? '');
@@ -107,7 +111,10 @@ function buildCellValue(
  * Inverse of buildCellValue: given a typed cell value object from renderAttributeView
  * and the column type, return a plain JS scalar/array for downstream consumption.
  */
-export function extractTypedCellValue(value: Record<string, unknown> | undefined, type: string): unknown {
+export function extractTypedCellValue(
+	value: Record<string, unknown> | undefined,
+	type: string,
+): unknown {
 	if (!value) return null;
 	const get = (k: string): Record<string, unknown> | undefined =>
 		value[k] as Record<string, unknown> | undefined;
@@ -336,6 +343,30 @@ export class SiYuanClient {
 		});
 	}
 
+	/**
+	 * Resolves a notebook name to its full info object.
+	 *
+	 * Case-sensitive exact match. Throws if no match or if multiple notebooks
+	 * share the same name (SiYuan doesn't enforce uniqueness).
+	 */
+	async notebookByName(name: string): Promise<SiYuanNotebookInfo> {
+		const notebooks = await this.listNotebooks();
+		const matches = notebooks.filter((n) => n.name === name);
+
+		if (matches.length === 0) {
+			const names = notebooks.map((n) => `"${n.name}"`).join(', ');
+			throw new Error(`Notebook "${name}" not found. Available notebooks: ${names || '(none)'}`);
+		}
+
+		if (matches.length > 1) {
+			throw new Error(
+				`Ambiguous notebook name "${name}" matches ${matches.length} notebooks. Rename the duplicates in SiYuan or use a unique name.`,
+			);
+		}
+
+		return matches[0];
+	}
+
 	// ---------------------------------------------------------------------------
 	// Document operations
 	// ---------------------------------------------------------------------------
@@ -427,9 +458,14 @@ export class SiYuanClient {
 	}
 
 	/** Returns block lineage (rootID, box, path, rootTitle) for a block. */
-	async getBlockInfo(
-		id: string,
-	): Promise<{ box: string; path: string; rootID: string; rootChildID: string; rootIcon: string; rootTitle: string }> {
+	async getBlockInfo(id: string): Promise<{
+		box: string;
+		path: string;
+		rootID: string;
+		rootChildID: string;
+		rootIcon: string;
+		rootTitle: string;
+	}> {
 		return this.request('/api/block/getBlockInfo', { id });
 	}
 
@@ -1058,10 +1094,9 @@ export class SiYuanClient {
 			/* keep rootID empty if lookup fails — non-fatal */
 		}
 		try {
-			const rendered = await this.request<{ name?: string }>(
-				'/api/av/renderAttributeView',
-				{ id: avID },
-			);
+			const rendered = await this.request<{ name?: string }>('/api/av/renderAttributeView', {
+				id: avID,
+			});
 			name = rendered?.name || '';
 		} catch {
 			/* keep name empty */

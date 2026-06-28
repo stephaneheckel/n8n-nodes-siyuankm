@@ -61,14 +61,15 @@ export const notebookOperations: INodeProperties = {
 };
 
 export const notebookFields: INodeProperties[] = [
-	// Notebook ID — used by rename, remove, open, close, getConf, setConf
+	// Notebook Name — used by rename, remove, open, close, getConf, setConf
 	{
-		displayName: 'Notebook ID',
-		name: 'notebookId',
+		displayName: 'Notebook Name',
+		name: 'notebookName',
 		type: 'string',
 		required: true,
 		default: '',
-		description: 'The unique ID of the notebook',
+		description:
+			'The name of the notebook (case-sensitive). Automatically resolved to its internal ID.',
 		displayOptions: {
 			show: {
 				resource: ['notebook'],
