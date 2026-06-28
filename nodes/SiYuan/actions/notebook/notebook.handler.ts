@@ -1,4 +1,4 @@
-import type { IExecuteFunctions } from 'n8n-workflow';
+import { NodeOperationError, type IExecuteFunctions } from 'n8n-workflow';
 import type { SiYuanClient } from '../../../../lib/SiYuanClient';
 import type { SiYuanNotebookConf } from '../../../../lib/interfaces';
 
@@ -14,8 +14,10 @@ export async function handleNotebookOperation(
 			// Check for duplicate before creating
 			const existing = await client.listNotebooks();
 			if (existing.some((n) => n.name === name)) {
-				throw new Error(
+				throw new NodeOperationError(
+					ctx.getNode(),
 					`A notebook named "${name}" already exists. Choose a different name or rename the existing one.`,
+					{ itemIndex },
 				);
 			}
 			return client.createNotebook(name);
