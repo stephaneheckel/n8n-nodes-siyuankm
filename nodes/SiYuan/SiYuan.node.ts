@@ -170,8 +170,7 @@ export class SiYuan implements INodeType {
 
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const items = this.getInputData();
-		const successData: INodeExecutionData[] = [];
-		const errorData: INodeExecutionData[] = [];
+		const returnData: INodeExecutionData[] = [];
 
 		const credentials = await this.getCredentials('siYuanApi');
 		const apiUrl = credentials.apiUrl as string;
@@ -205,7 +204,7 @@ export class SiYuan implements INodeType {
 					this.helpers.returnJsonArray(jsonResult),
 					{ itemData: { item: itemIndex } },
 				);
-				successData.push(...executionData);
+				returnData.push(...executionData);
 			} catch (error) {
 				if (this.continueOnFail()) {
 					const resource = this.getNodeParameter('resource', itemIndex, '') as string;
@@ -215,17 +214,17 @@ export class SiYuan implements INodeType {
 						`${resource}.${operation}`,
 						`/api/${resource}/*`,
 					);
-					errorData.push({
-						json: errorInfo as unknown as IDataObject,
-						error: error as NodeOperationError,
-						pairedItem: { item: itemIndex },
-					} as INodeExecutionData);
+					const executionErrorData = this.helpers.constructExecutionMetaData(
+						this.helpers.returnJsonArray(errorInfo),
+						{ itemData: { item: itemIndex } },
+					);
+					returnData.push(...executionErrorData);
 					continue;
 				}
 				throw error;
 			}
 		}
 
-		return [await this.prepareOutputData(successData), await this.prepareOutputData(errorData)] as unknown as INodeExecutionData[][];
+		return this.prepareOutputData(returnData);
 	}
 }
