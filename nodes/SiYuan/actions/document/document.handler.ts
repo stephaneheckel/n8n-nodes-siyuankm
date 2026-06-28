@@ -35,8 +35,8 @@ export async function handleDocumentOperation(
 				notebookId,
 				notebookName: name,
 				path: docPath,
-				found: Boolean(id),
-				updated: existingIds.length > 0,
+				created: Boolean(id),
+				found: existingIds.length > 0,
 			};
 		}
 		case 'rename': {
