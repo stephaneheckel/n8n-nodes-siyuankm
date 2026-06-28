@@ -64,11 +64,11 @@ export async function handleRecordOperation(
 
 			const ids = (await client.getIDsByHPath(docPath, notebookId)) || [];
 			if (ids.length === 0) {
-				return { record: recordKey, value: null, found: false };
+				return { record: recordKey, content: '', found: false };
 			}
 
-			const value = await client.getDocContent(ids[0]);
-			return { id: ids[0], record: recordKey, value: value ?? '', found: true };
+			const content = await client.getDocContent(ids[0]);
+			return { id: ids[0], record: recordKey, content: content ?? '', found: true };
 		}
 		default:
 			throw new Error(`Unsupported record operation: ${operation}`);
