@@ -16,8 +16,14 @@ export const recordOperations: INodeProperties = {
 		{
 			name: 'List',
 			value: 'list',
-			description: 'List all records (sub-documents) inside a table',
+			description: 'List all records (sub-documents) inside a table, optionally filtered by key',
 			action: 'List records in a table',
+		},
+		{
+			name: 'Read',
+			value: 'read',
+			description: 'Read the value of a single record by its key',
+			action: 'Read a record',
 		},
 	],
 	default: 'list',
@@ -31,7 +37,7 @@ export const recordFields: INodeProperties[] = [
 		required: true,
 		default: '',
 		description: 'The name of the notebook (case-sensitive). Automatically resolved to its internal ID.',
-		displayOptions: { show: { resource: ['record'], operation: ['create', 'list'] } },
+		displayOptions: { show: { resource: ['record'], operation: ['create', 'list', 'read'] } },
 	},
 	{
 		displayName: 'Table Name',
@@ -40,8 +46,8 @@ export const recordFields: INodeProperties[] = [
 		required: true,
 		default: '',
 		placeholder: 'my_table',
-		description: 'The table (directory) name. Creates /&lt;TableName&gt;/&lt;RecordKey&gt;.',
-		displayOptions: { show: { resource: ['record'], operation: ['create', 'list'] } },
+		description: 'The table (directory) name',
+		displayOptions: { show: { resource: ['record'], operation: ['create', 'list', 'read'] } },
 	},
 	{
 		displayName: 'Record Key',
@@ -50,8 +56,18 @@ export const recordFields: INodeProperties[] = [
 		required: true,
 		default: '',
 		placeholder: 'key1',
-		description: 'The record key (filename). The full path will be /&lt;TableName&gt;/&lt;RecordKey&gt;.',
-		displayOptions: { show: { resource: ['record'], operation: ['create'] } },
+		description: 'The record key (filename)',
+		displayOptions: { show: { resource: ['record'], operation: ['create', 'read'] } },
+	},
+	// Key Filter — list (optional glob pattern)
+	{
+		displayName: 'Key Filter',
+		name: 'keyFilter',
+		type: 'string',
+		default: '',
+		placeholder: 'user_*',
+		description: 'Glob pattern to filter records by key. Use * for any characters, ? for one character. Leave empty to list all.',
+		displayOptions: { show: { resource: ['record'], operation: ['list'] } },
 	},
 	{
 		displayName: 'Value',

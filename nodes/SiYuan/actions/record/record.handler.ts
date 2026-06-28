@@ -1,6 +1,12 @@
 import { NodeOperationError, type IExecuteFunctions } from 'n8n-workflow';
 import type { SiYuanClient } from '../../../../lib/SiYuanClient';
 
+function globToRegex(pattern: string): RegExp {
+	const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+	const regexStr = escaped.replace(/\*/g, '.*').replace(/\?/g, '.');
+	return new RegExp(`^${regexStr}$`);
+}
+
 export async function handleRecordOperation(
 	client: SiYuanClient,
 	operation: string,
@@ -36,12 +42,33 @@ export async function handleRecordOperation(
 			const name = ctx.getNodeParameter('notebookName', itemIndex) as string;
 			const { id: notebookId } = await client.notebookByName(name);
 			const tableName = ctx.getNodeParameter('tableName', itemIndex) as string;
+			const keyFilter = ctx.getNodeParameter('keyFilter', itemIndex, '') as string;
+
 			const docs = await client.listDocsInTable(notebookId, tableName);
-			return docs.map(({ id, title, updated }) => ({
-				id,
-				record: title,
-				updated,
-			}));
+			const keyRegex = keyFilter ? globToRegex(keyFilter) : null;
+
+			return docs
+				.filter((d) => (keyRegex ? keyRegex.test(d.title) : true))
+				.map(({ id, title, updated }) => ({
+					id,
+					record: title,
+					updated,
+				}));
+		}
+		case 'read': {
+			const name = ctx.getNodeParameter('notebookName', itemIndex) as string;
+			const { id: notebookId } = await client.notebookByName(name);
+			const tableName = ctx.getNodeParameter('tableName', itemIndex) as string;
+			const recordKey = ctx.getNodeParameter('recordKey', itemIndex) as string;
+			const docPath = `/${tableName.replace(/^\/+|\/+$/g, '')}/${recordKey.replace(/^\/+|\/+$/g, '')}`;
+
+			const ids = (await client.getIDsByHPath(docPath, notebookId)) || [];
+			if (ids.length === 0) {
+				return { record: recordKey, value: null, found: false };
+			}
+
+			const value = await client.getDocContent(ids[0]);
+			return { id: ids[0], record: recordKey, value: value ?? '', found: true };
 		}
 		default:
 			throw new Error(`Unsupported record operation: ${operation}`);
