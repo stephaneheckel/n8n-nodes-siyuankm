@@ -71,7 +71,7 @@ export class SiYuan implements INodeType {
 		// eslint-disable-next-line n8n-nodes-base/node-class-description-inputs-wrong-regular-node
 		inputs: ['main'],
 		// eslint-disable-next-line n8n-nodes-base/node-class-description-outputs-wrong
-		outputs: ['main', 'main'],
+		outputs: ['main'],
 		usableAsTool: true,
 		credentials: [
 			{
@@ -171,7 +171,6 @@ export class SiYuan implements INodeType {
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const items = this.getInputData();
 		const returnData: INodeExecutionData[] = [];
-		const errorData: INodeExecutionData[] = [];
 
 		const credentials = await this.getCredentials('siYuanApi');
 		const apiUrl = credentials.apiUrl as string;
@@ -219,13 +218,13 @@ export class SiYuan implements INodeType {
 						this.helpers.returnJsonArray(errorInfo),
 						{ itemData: { item: itemIndex } },
 					);
-					errorData.push(...executionErrorData);
+					returnData.push(...executionErrorData);
 					continue;
 				}
 				throw error;
 			}
 		}
 
-		return [await this.prepareOutputData(returnData), await this.prepareOutputData(errorData)] as unknown as INodeExecutionData[][];
+		return this.prepareOutputData(returnData);
 	}
 }
