@@ -39,6 +39,52 @@ export async function handleDocumentOperation(
 				found: existingIds.length > 0,
 			};
 		}
+		case 'createTable': {
+			const name = ctx.getNodeParameter('notebookName', itemIndex) as string;
+			const { id: notebookId } = await client.notebookByName(name);
+			const tableName = ctx.getNodeParameter('tableName', itemIndex) as string;
+			const docPath = `/${tableName}`;
+			const allowUpdate = ctx.getNodeParameter('allowUpdate', itemIndex, false) as boolean;
+
+			const existingIds = (await client.getIDsByHPath(docPath, notebookId)) || [];
+			if (existingIds.length > 0) {
+				if (!allowUpdate) {
+					throw new NodeOperationError(
+						ctx.getNode(),
+						`Table "${tableName}" already exists in notebook "${name}". Enable "Allow Update" to replace it.`,
+						{ itemIndex },
+					);
+				}
+				await client.removeDocByID(existingIds[0]);
+			}
+
+			const id = await client.createDocWithMd(notebookId, docPath, '');
+			return { id, notebookId, notebookName: name, tableName, path: docPath, created: Boolean(id), found: existingIds.length > 0 };
+		}
+		case 'createRecord': {
+			const name = ctx.getNodeParameter('notebookName', itemIndex) as string;
+			const { id: notebookId } = await client.notebookByName(name);
+			const tableName = ctx.getNodeParameter('tableName', itemIndex) as string;
+			const recordKey = ctx.getNodeParameter('recordKey', itemIndex) as string;
+			const value = ctx.getNodeParameter('value', itemIndex, '') as string;
+			const docPath = `/${tableName}/${recordKey}`;
+			const allowUpdate = ctx.getNodeParameter('allowUpdate', itemIndex, false) as boolean;
+
+			const existingIds = (await client.getIDsByHPath(docPath, notebookId)) || [];
+			if (existingIds.length > 0) {
+				if (!allowUpdate) {
+					throw new NodeOperationError(
+						ctx.getNode(),
+						`Record "${recordKey}" already exists in table "${tableName}". Enable "Allow Update" to overwrite it.`,
+						{ itemIndex },
+					);
+				}
+				await client.removeDocByID(existingIds[0]);
+			}
+
+			const id = await client.createDocWithMd(notebookId, docPath, value);
+			return { id, notebookId, notebookName: name, tableName, recordKey, path: docPath, created: Boolean(id), found: existingIds.length > 0 };
+		}
 		case 'rename': {
 			const docId = ctx.getNodeParameter('docId', itemIndex) as string;
 			const newTitle = ctx.getNodeParameter('newTitle', itemIndex) as string;

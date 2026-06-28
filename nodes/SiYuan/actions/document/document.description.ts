@@ -14,6 +14,18 @@ export const documentOperations: INodeProperties = {
 			action: 'Create a document',
 		},
 		{
+			name: 'Create Record',
+			value: 'createRecord',
+			description: 'Create or update a record document (key-value) under a table directory',
+			action: 'Create a record',
+		},
+		{
+			name: 'Create Table',
+			value: 'createTable',
+			description: 'Create a table directory to group records (key-value pattern)',
+			action: 'Create a table',
+		},
+		{
 			name: 'Export Markdown',
 			value: 'exportMd',
 			description: "Export a document's full Markdown content along with its human-readable path",
@@ -80,7 +92,7 @@ export const documentOperations: INodeProperties = {
 };
 
 export const documentFields: INodeProperties[] = [
-	// Notebook Name — create, getIdByPath, listInNotebook, getHPathByPath
+	// Notebook Name — create, createTable, createRecord, getIdByPath, listInNotebook, getHPathByPath
 	{
 		displayName: 'Notebook Name',
 		name: 'notebookName',
@@ -92,7 +104,14 @@ export const documentFields: INodeProperties[] = [
 		displayOptions: {
 			show: {
 				resource: ['document'],
-				operation: ['create', 'getIdByPath', 'listInNotebook', 'getHPathByPath'],
+				operation: [
+					'create',
+					'createTable',
+					'createRecord',
+					'getIdByPath',
+					'listInNotebook',
+					'getHPathByPath',
+				],
 			},
 		},
 	},
@@ -119,7 +138,44 @@ export const documentFields: INodeProperties[] = [
 		description: 'The Markdown content for the new document. Leave empty to create an empty document.',
 		displayOptions: { show: { resource: ['document'], operation: ['create'] } },
 	},
-	// Allow Update — create (overwrite existing document at the same path)
+	// Table Name — createTable, createRecord
+	{
+		displayName: 'Table Name',
+		name: 'tableName',
+		type: 'string',
+		required: true,
+		default: '',
+		placeholder: 'my_table',
+		description: 'The table (directory) name. Creates /&lt;TableName&gt; or /&lt;TableName&gt;/&lt;RecordKey&gt;.',
+		displayOptions: {
+			show: {
+				resource: ['document'],
+				operation: ['createTable', 'createRecord'],
+			},
+		},
+	},
+	// Record Key — createRecord
+	{
+		displayName: 'Record Key',
+		name: 'recordKey',
+		type: 'string',
+		required: true,
+		default: '',
+		placeholder: 'key1',
+		description: 'The record key (filename). The full path will be /&lt;TableName&gt;/&lt;RecordKey&gt;.',
+		displayOptions: { show: { resource: ['document'], operation: ['createRecord'] } },
+	},
+	// Value — createRecord
+	{
+		displayName: 'Value',
+		name: 'value',
+		type: 'string',
+		typeOptions: { rows: 5 },
+		default: '',
+		description: 'The value (content) for the record. Leave empty for a blank record.',
+		displayOptions: { show: { resource: ['document'], operation: ['createRecord'] } },
+	},
+	// Allow Update — create, createTable, createRecord
 	{
 		displayName: 'Allow Update',
 		name: 'allowUpdate',
@@ -127,7 +183,12 @@ export const documentFields: INodeProperties[] = [
 		default: false,
 		description:
 			'Whether to remove and replace an existing document at the same path. When off, duplicate paths cause an error.',
-		displayOptions: { show: { resource: ['document'], operation: ['create'] } },
+		displayOptions: {
+			show: {
+				resource: ['document'],
+				operation: ['create', 'createTable', 'createRecord'],
+			},
+		},
 	},
 	// Document ID — rename, remove, move, getPathById, exportMd, getContent, getTree, getStoragePath
 	{
