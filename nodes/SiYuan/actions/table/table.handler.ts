@@ -33,7 +33,12 @@ export async function handleTableOperation(
 		case 'list': {
 			const name = ctx.getNodeParameter('notebookName', itemIndex) as string;
 			const { id: notebookId } = await client.notebookByName(name);
-			return client.listDocsInNotebook(notebookId);
+			const docs = await client.listDocsInNotebook(notebookId);
+			return docs.map(({ id, name: docName, title, updated, isDir, isSymlink }) => ({
+				id,
+				table: title || docName.replace(/\.sy$/, ''),
+				updated,
+			}));
 		}
 		default:
 			throw new Error(`Unsupported table operation: ${operation}`);
