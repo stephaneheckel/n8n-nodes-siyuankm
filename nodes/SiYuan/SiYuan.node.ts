@@ -24,6 +24,8 @@ import { notebookOperations, notebookFields } from './actions/notebook/notebook.
 import { searchOperations, searchFields } from './actions/search/search.description';
 import { systemOperations, systemFields } from './actions/system/system.description';
 import { tagOperations, tagFields } from './actions/tag/tag.description';
+import { tableOperations, tableFields } from './actions/table/table.description';
+import { recordOperations, recordFields } from './actions/record/record.description';
 
 // Operation handlers
 import { handleAssetOperation } from './actions/asset/asset.handler';
@@ -36,6 +38,8 @@ import { handleNotebookOperation } from './actions/notebook/notebook.handler';
 import { handleSearchOperation } from './actions/search/search.handler';
 import { handleSystemOperation } from './actions/system/system.handler';
 import { handleTagOperation } from './actions/tag/tag.handler';
+import { handleTableOperation } from './actions/table/table.handler';
+import { handleRecordOperation } from './actions/record/record.handler';
 
 const RESOURCE_HANDLERS: Record<
 	string,
@@ -51,6 +55,8 @@ const RESOURCE_HANDLERS: Record<
 	search: handleSearchOperation,
 	system: handleSystemOperation,
 	tag: handleTagOperation,
+	table: handleTableOperation,
+	record: handleRecordOperation,
 };
 
 export class SiYuan implements INodeType {
@@ -119,21 +125,31 @@ export class SiYuan implements INodeType {
 						description: 'Create and manage plain Markdown table blocks (rows as text)',
 					},
 					{
-						name: 'Notebook',
-						value: 'notebook',
-						description: 'Create, list, rename, and remove notebooks',
-					},
-					{
+							name: 'Notebook',
+							value: 'notebook',
+							description: 'Create, list, rename, and remove notebooks',
+						},
+						{
+							name: 'Record',
+							value: 'record',
+							description: 'List records (sub-documents) inside a table',
+						},
+						{
 						name: 'Search',
 						value: 'search',
 						description: 'Query the SiYuan database using SQL',
 					},
 					{
-						name: 'System',
-						value: 'system',
-						description: 'System utilities: version, notifications, Sprig templates, file listing',
-					},
-					{
+							name: 'System',
+							value: 'system',
+							description: 'System utilities: version, notifications, Sprig templates, file listing',
+						},
+						{
+							name: 'Table',
+							value: 'table',
+							description: 'List top-level documents (tables) in a notebook',
+						},
+						{
 						name: 'Tag',
 						value: 'tag',
 						description: 'Add, remove, list, rename, and search tags on blocks',
@@ -150,21 +166,25 @@ export class SiYuan implements INodeType {
 			documentOperations,
 			markdownTableOperations,
 			notebookOperations,
-			searchOperations,
-			systemOperations,
-			tagOperations,
+				recordOperations,
+				searchOperations,
+				systemOperations,
+				tableOperations,
+				tagOperations,
 
-			// Per-resource parameter fields
-			...assetFields,
-			...attributeFields,
-			...blockFields,
-			...databaseFields,
-			...documentFields,
-			...markdownTableFields,
-			...notebookFields,
-			...searchFields,
-			...systemFields,
-			...tagFields,
+				// Per-resource parameter fields
+				...assetFields,
+				...attributeFields,
+				...blockFields,
+				...databaseFields,
+				...documentFields,
+				...markdownTableFields,
+				...notebookFields,
+				...recordFields,
+				...searchFields,
+				...systemFields,
+				...tableFields,
+				...tagFields,
 		],
 	};
 

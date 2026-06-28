@@ -12,10 +12,9 @@ export async function handleDocumentOperation(
 			const name = ctx.getNodeParameter('notebookName', itemIndex) as string;
 			const { id: notebookId } = await client.notebookByName(name);
 			const docPath = ctx.getNodeParameter('docPath', itemIndex) as string;
-			const markdown = ctx.getNodeParameter('markdownContent', itemIndex) as string;
+			const markdown = ctx.getNodeParameter('markdownContent', itemIndex, '') as string;
 			const allowUpdate = ctx.getNodeParameter('allowUpdate', itemIndex, false) as boolean;
 
-			// Check if a document already exists at this path
 			const existingIds = (await client.getIDsByHPath(docPath, notebookId)) || [];
 			if (existingIds.length > 0) {
 				if (!allowUpdate) {
@@ -25,7 +24,6 @@ export async function handleDocumentOperation(
 						{ itemIndex },
 					);
 				}
-				// Remove existing document and recreate with new content
 				await client.removeDocByID(existingIds[0]);
 			}
 
@@ -123,17 +121,6 @@ export async function handleDocumentOperation(
 				path,
 				found: path !== null,
 			};
-		}
-		case 'listInNotebook': {
-			const name = ctx.getNodeParameter('notebookName', itemIndex) as string;
-			const { id: notebookId } = await client.notebookByName(name);
-			return client.listDocsInNotebook(notebookId);
-		}
-		case 'listInTable': {
-			const name = ctx.getNodeParameter('notebookName', itemIndex) as string;
-			const { id: notebookId } = await client.notebookByName(name);
-			const tableName = ctx.getNodeParameter('tableName', itemIndex) as string;
-			return client.listDocsInTable(notebookId, tableName.replace(/^\/+|\/+$/g, ''));
 		}
 		case 'exportMd': {
 			const docId = ctx.getNodeParameter('docId', itemIndex) as string;

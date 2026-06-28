@@ -70,18 +70,6 @@ export const documentOperations: INodeProperties = {
 			action: 'Get storage path by ID',
 		},
 		{
-			name: 'List in Notebook',
-			value: 'listInNotebook',
-			description: 'List all documents (with titles and IDs) inside a specific notebook',
-			action: 'List documents in a notebook',
-		},
-		{
-			name: 'List in Table',
-			value: 'listInTable',
-			description: 'List all records (sub-documents) inside a table directory',
-			action: 'List records in a table',
-		},
-		{
 			name: 'Remove',
 			value: 'remove',
 			description: 'Permanently delete a document by its ID',
@@ -115,8 +103,6 @@ export const documentFields: INodeProperties[] = [
 					'createTable',
 					'createRecord',
 					'getIdByPath',
-					'listInNotebook',
-					'listInTable',
 					'getHPathByPath',
 				],
 			},
