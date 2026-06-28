@@ -448,9 +448,18 @@ export class SiYuanClient {
 		return documents;
 	}
 
-	/** Lists documents in a table (subdirectory) of a notebook. */
+	/** Lists records (sub-documents) inside a table directory. */
 	async listDocsInTable(notebookId: string, tableName: string): Promise<ListedDocument[]> {
-		const dirPath = `/data/${notebookId}/${tableName.replace(/^\/+|\/+$/g, '')}`;
+		const cleanName = tableName.replace(/^\/+|\/+$/g, '');
+		// Find the table document by its human-readable path
+		const tableIds = (await this.getIDsByHPath(`/${cleanName}`, notebookId)) || [];
+		if (tableIds.length === 0) return [];
+
+		// Get the storage path to find where child documents live
+		const { notebook, path: storagePath } = await this.getPathByID(tableIds[0]);
+		// Records are stored as /data/<notebook>/<tableDocId>/<recordId>.sy
+		const dirPath = `/data/${notebook}${storagePath.replace(/\.sy$/, '')}`;
+
 		const entries = await this.request<SiYuanDirEntry[]>('/api/file/readDir', { path: dirPath });
 
 		const documents: ListedDocument[] = [];
