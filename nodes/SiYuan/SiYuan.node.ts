@@ -217,9 +217,9 @@ export class SiYuan implements INodeType {
 					);
 					errorData.push({
 						json: errorInfo as unknown as IDataObject,
-						error: errorInfo,
+						error: error as NodeOperationError,
 						pairedItem: { item: itemIndex },
-					});
+					} as INodeExecutionData);
 					continue;
 				}
 				throw error;
