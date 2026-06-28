@@ -67,8 +67,13 @@ export async function handleRecordOperation(
 				return { record: recordKey, content: '', found: false };
 			}
 
-			const content = await client.getDocContent(ids[0]);
-			return { id: ids[0], record: recordKey, content: content ?? '', found: true };
+			const raw = await client.getDocContent(ids[0]);
+			// Strip SiYuan's YAML frontmatter and auto-generated heading
+			const content = (raw ?? '')
+				.replace(/^---[\s\S]*?---\n*/m, '') // remove frontmatter
+				.replace(/^# .*\n*/m, '')             // remove first heading
+				.trim();
+			return { id: ids[0], record: recordKey, content, found: true };
 		}
 		default:
 			throw new Error(`Unsupported record operation: ${operation}`);
