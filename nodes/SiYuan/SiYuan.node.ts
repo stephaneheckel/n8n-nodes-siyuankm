@@ -215,11 +215,11 @@ export class SiYuan implements INodeType {
 						`${resource}.${operation}`,
 						`/api/${resource}/*`,
 					);
-					const executionErrorData = this.helpers.constructExecutionMetaData(
-						this.helpers.returnJsonArray(errorInfo),
-						{ itemData: { item: itemIndex } },
-					);
-					errorData.push(...executionErrorData);
+					errorData.push({
+						json: errorInfo as unknown as IDataObject,
+						error: errorInfo,
+						pairedItem: { item: itemIndex },
+					});
 					continue;
 				}
 				throw error;
