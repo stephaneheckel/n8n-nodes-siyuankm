@@ -31,7 +31,7 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "tsc && gulp build:icons",
-    "dev": "tsc && cross-env N8N_CUSTOM_EXTENSIONS=dist n8n start",
+    "dev": "tsc && cross-env N8N_CUSTOM_EXTENSIONS=. n8n start",
     "dev:watch": "tsc --watch",
     "format": "prettier nodes credentials lib --write",
     "lint": "eslint nodes credentials package.json",
