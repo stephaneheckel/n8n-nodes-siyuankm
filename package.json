@@ -31,7 +31,7 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "tsc && gulp build:icons",
-    "dev": "tsc && N8N_CUSTOM_EXTENSIONS=dist n8n start",
+    "dev": "tsc && cross-env N8N_CUSTOM_EXTENSIONS=dist n8n start",
     "dev:watch": "tsc --watch",
     "format": "prettier nodes credentials lib --write",
     "lint": "eslint nodes credentials package.json",
@@ -60,6 +60,7 @@
     "@playwright/test": "^1.60.0",
     "@types/node": "^25.9.4",
     "@typescript-eslint/parser": "^7.18.0",
+    "cross-env": "^10.1.0",
     "eslint": "^8.57.1",
     "eslint-plugin-n8n-nodes-base": "^1.16.6",
     "gulp": "^4.0.2",
