@@ -86,4 +86,13 @@ export const recordFields: INodeProperties[] = [
 		description: 'Whether to remove and replace an existing record at the same path. When off, duplicate keys cause an error.',
 		displayOptions: { show: { resource: ['record'], operation: ['create'] } },
 	},
+	{
+		displayName: 'Tags',
+		name: 'tags',
+		type: 'string',
+		default: '',
+		placeholder: 'draft, urgent, client-a',
+		description: 'Comma-separated tags to apply to the record. Leave empty for none. Set on the block attribute.',
+		displayOptions: { show: { resource: ['record'], operation: ['create'] } },
+	},
 ];

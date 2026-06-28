@@ -36,7 +36,14 @@ export async function handleRecordOperation(
 			}
 
 			const id = await client.createDocWithMd(notebookId, docPath, value);
-			return { id, notebookId, notebookName: name, tableName, recordKey, path: docPath, created: Boolean(id), found: existingIds.length > 0 };
+
+			// Apply tags if provided
+			const tags = ctx.getNodeParameter('tags', itemIndex, '') as string;
+			if (tags.trim()) {
+				await client.setBlockAttrs(id, { 'custom-tag': tags.trim() });
+			}
+
+			return { id, notebookId, notebookName: name, tableName, recordKey, tags: tags.trim() || undefined, path: docPath, created: Boolean(id), found: existingIds.length > 0 };
 		}
 		case 'list': {
 			const name = ctx.getNodeParameter('notebookName', itemIndex) as string;
