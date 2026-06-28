@@ -30,8 +30,8 @@
   "packageManager": "pnpm@10.10.0",
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "build": "tsc && gulp build:icons",
-    "dev": "tsc && cross-env N8N_CUSTOM_EXTENSIONS=. n8n start",
+    "build": "tsc && gulp build:icons && node -e \"var p=require('./dist/package.json');p.n8n.nodes=p.n8n.nodes.map(function(n){return n.replace('dist/','')});p.n8n.credentials=p.n8n.credentials.map(function(c){return c.replace('dist/','')});require('fs').writeFileSync('./dist/package.json',JSON.stringify(p,null,2)+'\\n')\"",
+    "dev": "tsc && cross-env N8N_CUSTOM_EXTENSIONS=dist n8n start",
     "dev:watch": "tsc --watch",
     "format": "prettier nodes credentials lib --write",
     "lint": "eslint nodes credentials package.json",
