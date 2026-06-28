@@ -1,4 +1,4 @@
-import { type IExecuteFunctions } from 'n8n-workflow';
+import { NodeOperationError, type IExecuteFunctions } from 'n8n-workflow';
 import type { SiYuanClient } from '../../../../lib/SiYuanClient';
 
 export async function handleRecordOperation(
@@ -8,6 +8,30 @@ export async function handleRecordOperation(
 	itemIndex: number,
 ): Promise<unknown> {
 	switch (operation) {
+		case 'create': {
+			const name = ctx.getNodeParameter('notebookName', itemIndex) as string;
+			const { id: notebookId } = await client.notebookByName(name);
+			const tableName = ctx.getNodeParameter('tableName', itemIndex) as string;
+			const recordKey = ctx.getNodeParameter('recordKey', itemIndex) as string;
+			const value = ctx.getNodeParameter('value', itemIndex, '') as string;
+			const docPath = `/${tableName.replace(/^\/+|\/+$/g, '')}/${recordKey.replace(/^\/+|\/+$/g, '')}`;
+			const allowUpdate = ctx.getNodeParameter('allowUpdate', itemIndex, false) as boolean;
+
+			const existingIds = (await client.getIDsByHPath(docPath, notebookId)) || [];
+			if (existingIds.length > 0) {
+				if (!allowUpdate) {
+					throw new NodeOperationError(
+						ctx.getNode(),
+						`Record "${recordKey}" already exists in table "${tableName}". Enable "Allow Update" to overwrite it.`,
+						{ itemIndex },
+					);
+				}
+				await client.removeDocByID(existingIds[0]);
+			}
+
+			const id = await client.createDocWithMd(notebookId, docPath, value);
+			return { id, notebookId, notebookName: name, tableName, recordKey, path: docPath, created: Boolean(id), found: existingIds.length > 0 };
+		}
 		case 'list': {
 			const name = ctx.getNodeParameter('notebookName', itemIndex) as string;
 			const { id: notebookId } = await client.notebookByName(name);
