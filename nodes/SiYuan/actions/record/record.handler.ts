@@ -35,11 +35,7 @@ export async function handleRecordOperation(
 				await client.removeDocByID(existingIds[0]);
 			}
 
-			const id = await client.createDocWithMd(
-				notebookId,
-				docPath,
-				Buffer.from(value, 'utf-8').toString('base64'),
-			);
+			const id = await client.createDocWithMd(notebookId, docPath, value);
 
 			// Apply tags if provided
 			const tags = ctx.getNodeParameter('tags', itemIndex, '') as string;
@@ -79,12 +75,15 @@ export async function handleRecordOperation(
 			}
 
 			const raw = await client.getDocContent(ids[0]);
-				// Strip SiYuan's frontmatter + heading, then decode base64
-				const stripped = (raw ?? '')
-					.replace(/^---[\s\S]*?---\n*/m, '')
-					.replace(/^# .*\n*/m, '')
-					.trim();
-				const content = Buffer.from(stripped, 'base64').toString('utf-8');
+			// Strip SiYuan's auto-generated frontmatter + heading, preserving user content
+			const headingPattern = new RegExp(
+				`^# ${recordKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\n*`,
+				'm',
+			);
+			const content = (raw ?? '')
+				.replace(/^---[\s\S]*?---\n*/m, '')
+				.replace(headingPattern, '')
+				.trim();
 			return { id: ids[0], record: recordKey, content, found: true };
 		}
 		default:
