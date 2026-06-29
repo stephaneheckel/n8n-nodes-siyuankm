@@ -33,9 +33,24 @@ Record → List           table: "users", filter: "*"   →  all records
 `Record/Create` includes an **Allow Update** toggle for upsert semantics
 and an optional **Tags** field (comma-separated, stored as SiYuan block attributes).
 
----
+### Intended use
 
-## Resources
+This key-value layer is designed for **non-human interfaces** — CLIs, agents
+(such as [Hermes Agent](https://hermes-agent.nousresearch.com/)), and
+automated workflows that produce documentation, activity logs, or structured
+reports. Tables and records can be created, updated, and queried
+programmatically without ever opening the SiYuan UI.
+
+**Do not use this as a general-purpose key-value system.**
+SiYuan is a knowledge base — the key-value mapping is a convenience layer
+on top of its document tree, not a replacement for Redis, SQLite, or a dedicated KV store.
+Performance, concurrency, and consistency guarantees are those of the underlying
+SiYuan kernel.
+
+This experimental node is also a personal exploration of SiYuan's internals —
+understanding how documents, blocks, attributes, and the file tree work under the hood.
+
+---
 
 ### New in this fork (`Table` and `Record`)
 
