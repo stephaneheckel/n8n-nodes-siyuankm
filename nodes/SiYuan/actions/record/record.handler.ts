@@ -75,11 +75,12 @@ export async function handleRecordOperation(
 			}
 
 			const raw = await client.getDocContent(ids[0]);
-			// Strip SiYuan's YAML frontmatter and auto-generated heading
-			const content = (raw ?? '')
-				.replace(/^---[\s\S]*?---\n*/m, '') // remove frontmatter
-				.replace(/^# .*\n*/m, '')             // remove first heading
-				.trim();
+				// Strip SiYuan's auto-generated frontmatter and heading for key-value semantics
+				const headingPattern = new RegExp(`^# ${recordKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\n*`, 'm');
+				const content = (raw ?? '')
+					.replace(/^---[\s\S]*?---\n*/m, '')
+					.replace(headingPattern, '')
+					.trim();
 			return { id: ids[0], record: recordKey, content, found: true };
 		}
 		default:
