@@ -12,14 +12,8 @@ import { formatErrorForAgent } from '../../lib/errors';
 
 // Resource descriptions
 import { assetOperations, assetFields } from './actions/asset/asset.description';
-import { attributeOperations, attributeFields } from './actions/attribute/attribute.description';
-import { blockOperations, blockFields } from './actions/block/block.description';
 import { databaseOperations, databaseFields } from './actions/database/database.description';
 import { documentOperations, documentFields } from './actions/document/document.description';
-import {
-	markdownTableOperations,
-	markdownTableFields,
-} from './actions/markdownTable/markdownTable.description';
 import { notebookOperations, notebookFields } from './actions/notebook/notebook.description';
 import { searchOperations, searchFields } from './actions/search/search.description';
 import { systemOperations, systemFields } from './actions/system/system.description';
@@ -29,11 +23,8 @@ import { recordOperations, recordFields } from './actions/record/record.descript
 
 // Operation handlers
 import { handleAssetOperation } from './actions/asset/asset.handler';
-import { handleAttributeOperation } from './actions/attribute/attribute.handler';
-import { handleBlockOperation } from './actions/block/block.handler';
 import { handleDatabaseOperation } from './actions/database/database.handler';
 import { handleDocumentOperation } from './actions/document/document.handler';
-import { handleMarkdownTableOperation } from './actions/markdownTable/markdownTable.handler';
 import { handleNotebookOperation } from './actions/notebook/notebook.handler';
 import { handleSearchOperation } from './actions/search/search.handler';
 import { handleSystemOperation } from './actions/system/system.handler';
@@ -46,11 +37,8 @@ const RESOURCE_HANDLERS: Record<
 	(client: SiYuanClient, op: string, ctx: IExecuteFunctions, idx: number) => Promise<unknown>
 > = {
 	asset: handleAssetOperation,
-	attribute: handleAttributeOperation,
-	block: handleBlockOperation,
 	database: handleDatabaseOperation,
 	document: handleDocumentOperation,
-	markdownTable: handleMarkdownTableOperation,
 	notebook: handleNotebookOperation,
 	search: handleSearchOperation,
 	system: handleSystemOperation,
@@ -93,23 +81,13 @@ export class SiYuan implements INodeType {
 				type: 'options',
 				noDataExpression: true,
 				options: [
-					{
-						name: 'Asset',
-						value: 'asset',
-						description: 'Upload, download, list, rename, and delete files in the SiYuan workspace',
-					},
-					{
-						name: 'Attribute',
-						value: 'attribute',
-						description: 'Get or set custom and built-in attributes on blocks',
-					},
-					{
-						name: 'Block',
-						value: 'block',
-						description: 'Create, read, update, and delete content blocks within documents',
-					},
-					{
-						name: 'Database',
+						{
+							name: 'Asset',
+							value: 'asset',
+							description: 'Upload, download, list, rename, and delete files in the SiYuan workspace',
+						},
+						{
+							name: 'Database',
 						value: 'database',
 						description:
 							'Create and manage SiYuan databases (AttributeView blocks): rows, columns, and cell values',
@@ -118,11 +96,6 @@ export class SiYuan implements INodeType {
 						name: 'Document',
 						value: 'document',
 						description: 'Create, rename, move, remove, and export documents',
-					},
-					{
-						name: 'Markdown Table',
-						value: 'markdownTable',
-						description: 'Create and manage plain Markdown table blocks (rows as text)',
 					},
 					{
 							name: 'Notebook',
@@ -159,26 +132,20 @@ export class SiYuan implements INodeType {
 			},
 
 			// Per-resource operation dropdowns
-			assetOperations,
-			attributeOperations,
-			blockOperations,
-			databaseOperations,
-			documentOperations,
-			markdownTableOperations,
-			notebookOperations,
-				recordOperations,
-				searchOperations,
-				systemOperations,
-				tableOperations,
-				tagOperations,
+				assetOperations,
+				databaseOperations,
+				documentOperations,
+				notebookOperations,
+					recordOperations,
+					searchOperations,
+					systemOperations,
+					tableOperations,
+					tagOperations,
 
-				// Per-resource parameter fields
-				...assetFields,
-				...attributeFields,
-				...blockFields,
+					// Per-resource parameter fields
+					...assetFields,
 				...databaseFields,
 				...documentFields,
-				...markdownTableFields,
 				...notebookFields,
 				...recordFields,
 				...searchFields,
