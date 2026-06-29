@@ -43,7 +43,9 @@ programmatically without ever opening the SiYuan UI.
 
 **Do not use this as a general-purpose key-value system.**
 SiYuan is a knowledge base — the key-value mapping is a convenience layer
-on top of its document tree, not a replacement for Redis, SQLite, or a dedicated KV store.
+on top of its document tree, not a replacement for Redis, SQLite, or a dedicated
+KV store. For a proper key-value system in n8n, see
+[n8n-nodes-keyvalue](https://github.com/stephaneheckel/n8n-nodes-keyvalue).
 Performance, concurrency, and consistency guarantees are those of the underlying
 SiYuan kernel.
 
