@@ -75,15 +75,15 @@ export async function handleRecordOperation(
 			}
 
 			const raw = await client.getDocContent(ids[0]);
-			// Strip SiYuan's auto-generated frontmatter + heading, preserving user content
-			const headingPattern = new RegExp(
-				`^# ${recordKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\n*`,
-				'm',
-			);
-			const content = (raw ?? '')
-				.replace(/^---[\s\S]*?---\n*/m, '')
-				.replace(headingPattern, '')
-				.trim();
+				// Strip SiYuan's auto-generated frontmatter + heading, preserving user whitespace
+				const headingPattern = new RegExp(
+					`^# ${recordKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\n*`,
+					'm',
+				);
+				const content = (raw ?? '')
+					.replace(/^---[\s\S]*?---\n*/m, '')
+					.replace(headingPattern, '')
+					.replace(/^\n+/, ''); // remove leading blank lines only
 			return { id: ids[0], record: recordKey, content, found: true };
 		}
 		default:
